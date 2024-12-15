@@ -2,7 +2,7 @@
 
 animated_to provides a widget named `AnimatedTo`. 
 
-![AnimatedTo Preview](https://github.com/chooyan-eng/animated_to/raw/main/assets/animated_to.gif)
+<img src="https://github.com/chooyan-eng/animated_to/raw/main/assets/animated_to.gif" alt="AnimatedTo Preview" width=300/>
 
 `AnimatedTo` enables you to animate whatever widget you want to animate to the next position when rebuild happens and the rebuild updates the position of the widget.
 
