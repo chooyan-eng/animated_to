@@ -1,0 +1,20 @@
+name: animated_to
+description: "AnimateTo animates its child to a new position requiring no calculation."
+version: 0.0.1
+homepage: https://github.com/chooyan-eng/animated_to
+topics:
+  - animation
+
+environment:
+  sdk: '>=3.4.1 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
