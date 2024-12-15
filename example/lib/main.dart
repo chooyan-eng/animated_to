@@ -104,11 +104,11 @@ class _Card extends StatelessWidget {
       vsync: vsync,
       // [GlobalObjectKey] is required to identify the widget
       key: GlobalObjectKey(item),
-      duration: Duration(milliseconds: 300 + (50 * index)),
-      curve: Curves.easeIn,
+      duration: Duration(milliseconds: 200 + (50 * index)),
+      curve: Curves.easeInOut,
       // [AnimatedTo] can be combined with some Animated widgets
       child: AnimatedContainer(
-        duration: Duration(milliseconds: 300 + (50 * index)),
+        duration: Duration(milliseconds: 200 + (50 * index)),
         curve: Curves.easeIn,
         decoration: BoxDecoration(
           color: Colors.primaries[int.parse(item) % Colors.primaries.length]

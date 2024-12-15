@@ -2,6 +2,8 @@
 
 animated_to provides a widget named `AnimatedTo`. 
 
+![AnimatedTo Preview](https://github.com/chooyan-eng/animated_to/raw/main/assets/animated_to.gif)
+
 `AnimatedTo` enables you to animate whatever widget you want to animate to the next position when rebuild happens and the rebuild updates the position of the widget.
 
 No calculation is necessary. Every calculation is done by Flutter framework, and `AnimatedTo` just _animates_ to the calculated position.
