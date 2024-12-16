@@ -25,6 +25,9 @@ class AnimatedTo extends SingleChildRenderObjectWidget {
   /// This indicates relative position to child's intrinsic position.
   final Offset? slidingFrom;
 
+  /// Whether the animation is enabled.
+  final bool enabled;
+
   const AnimatedTo({
     super.key,
     super.child,
@@ -33,6 +36,7 @@ class AnimatedTo extends SingleChildRenderObjectWidget {
     this.curve = Curves.easeInOut,
     this.appearingFrom,
     this.slidingFrom,
+    this.enabled = true,
   });
 
   @override
@@ -43,6 +47,7 @@ class AnimatedTo extends SingleChildRenderObjectWidget {
       vsync: vsync,
       appearingFrom: appearingFrom,
       slidingFrom: slidingFrom,
+      enabled: enabled,
     );
   }
 
@@ -54,7 +59,8 @@ class AnimatedTo extends SingleChildRenderObjectWidget {
       ..curve = curve
       ..vsync = vsync
       ..appearingFrom = appearingFrom
-      ..slidingFrom = slidingFrom;
+      ..slidingFrom = slidingFrom
+      ..enabled = enabled;
   }
 }
 
@@ -66,11 +72,13 @@ class RenderAnimatedRebuild extends RenderProxyBox {
     required TickerProvider vsync,
     Offset? appearingFrom,
     Offset? slidingFrom,
+    required bool enabled,
   })  : _duration = duration,
         _curve = curve,
         _vsync = vsync,
         _appearingFrom = appearingFrom,
-        _slidingFrom = slidingFrom;
+        _slidingFrom = slidingFrom,
+        _enabled = enabled;
 
   Duration _duration;
   set duration(Duration value) {
@@ -102,6 +110,12 @@ class RenderAnimatedRebuild extends RenderProxyBox {
     _slidingFrom = value;
   }
 
+  bool _enabled = true;
+  set enabled(bool value) {
+    if (_enabled == value) return;
+    _enabled = value;
+  }
+
   Offset? _oldOffset;
   Offset _targetOffset = Offset.zero;
   AnimationController? _controller;
@@ -129,6 +143,16 @@ class RenderAnimatedRebuild extends RenderProxyBox {
       _targetOffset = _oldOffset ?? offset;
     }
 
+    if (!_enabled) {
+      _controller?.dispose();
+      _controller = null;
+      _animation = null;
+      _oldOffset = offset;
+      _targetOffset = offset;
+      context.paintChild(child!, offset);
+      return;
+    }
+
     // if still _oldOffset is null, meaning _appearingFrom or _slidingFrom is not given,
     // keep the first position as the next starting position.
     if (_oldOffset == null) {
@@ -149,6 +173,7 @@ class RenderAnimatedRebuild extends RenderProxyBox {
     _targetOffset = newOffset;
 
     _controller?.dispose();
+    _controller = null;
     _controller = AnimationController(
       vsync: _vsync,
       duration: _duration,

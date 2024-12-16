@@ -25,9 +25,11 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
 
   /// Some item objects. In this demo, simply a list of [String].
   final _items = List.generate(
-    15,
+    100,
     (index) => index.toString(),
   );
+
+  bool _enabled = true;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +41,7 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
             opacity: 1.0,
             isExpanded: _isExpanded,
             vsync: this,
+            enabled: _enabled,
           ),
         )
         .toList();
@@ -46,23 +49,34 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
     return Scaffold(
       appBar: AppBar(title: const Text('Animated Sample Page')),
       // TODO(chooyan-eng): note that [AnimatedTo] doesn't work on scrollable widgets
-      // try scrolling the page to see the issue
-      body: SingleChildScrollView(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: switch (_isExpanded) {
-              // toggle [Wrap] and [Column] with animation
-              true => Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  children: children,
-                ),
-              false => Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: children,
-                ),
-            },
+      body: NotificationListener<ScrollNotification>(
+        // workaround to fix scrolling issue by disabling animation when scrolling
+        onNotification: (notification) {
+          if (notification is ScrollStartNotification) {
+            setState(() => _enabled = false);
+          }
+          if (notification is ScrollEndNotification) {
+            setState(() => _enabled = true);
+          }
+          return true;
+        },
+        child: SingleChildScrollView(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: switch (_isExpanded) {
+                // toggle [Wrap] and [Column] with animation
+                true => Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: children,
+                  ),
+                false => Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: children,
+                  ),
+              },
+            ),
           ),
         ),
       ),
@@ -85,6 +99,7 @@ class _Card extends StatelessWidget {
     required this.opacity,
     required this.isExpanded,
     required this.vsync,
+    required this.enabled,
   });
 
   final String item;
@@ -92,6 +107,7 @@ class _Card extends StatelessWidget {
   final double opacity;
   final bool isExpanded;
   final TickerProvider vsync;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -104,11 +120,12 @@ class _Card extends StatelessWidget {
       vsync: vsync,
       // [GlobalObjectKey] is required to identify the widget
       key: GlobalObjectKey(item),
-      duration: Duration(milliseconds: 200 + (50 * index)),
+      duration: Duration(milliseconds: 300 + (10 * index)),
       curve: Curves.easeInOut,
+      enabled: enabled,
       // [AnimatedTo] can be combined with some Animated widgets
       child: AnimatedContainer(
-        duration: Duration(milliseconds: 200 + (50 * index)),
+        duration: Duration(milliseconds: 300 + (10 * index)),
         curve: Curves.easeIn,
         decoration: BoxDecoration(
           color: Colors.primaries[int.parse(item) % Colors.primaries.length]
@@ -117,9 +134,9 @@ class _Card extends StatelessWidget {
               ? BorderRadius.circular(100)
               : BorderRadius.circular(4),
         ),
-        margin: const EdgeInsets.all(8),
-        width: 80,
-        height: 80,
+        margin: const EdgeInsets.all(2),
+        width: 40,
+        height: 40,
         child: Center(
           child: Text(
             item,
