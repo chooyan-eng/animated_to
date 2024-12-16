@@ -1,3 +1,6 @@
+## [0.0.3] - 2024.12.16
+- add `enabled` property to control animation
+
 ## [0.0.2] - 2024.12.15
 - update README.md
 
