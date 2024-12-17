@@ -1,3 +1,7 @@
+## [0.0.4] - 2024.12.17
+- add `onEnd` callback to handle animation end
+- some refactoring
+
 ## [0.0.3] - 2024.12.16
 - add `enabled` property to control animation
 
