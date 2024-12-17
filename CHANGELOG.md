@@ -1,3 +1,6 @@
+## [0.1.0] - 2024.12.17
+- write some basic documentation
+
 ## [0.0.4] - 2024.12.17
 - add `onEnd` callback to handle animation end
 - some refactoring
