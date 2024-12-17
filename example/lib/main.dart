@@ -25,7 +25,7 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
 
   /// Some item objects. In this demo, simply a list of [String].
   final _items = List.generate(
-    100,
+    5,
     (index) => index.toString(),
   );
 
@@ -115,6 +115,7 @@ class _Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = 60.0;
     return AnimatedTo(
       // try either of [appearingFrom] or [slidingFrom]
       appearingFrom: const Offset(100, 0),
@@ -127,10 +128,20 @@ class _Card extends StatelessWidget {
       duration: Duration(milliseconds: 300 + (10 * index)),
       curve: Curves.easeOutQuad,
       enabled: enabled,
+      onEnd: (cause) {
+        switch (cause) {
+          case AnimationEndCause.interrupted:
+            // called when the animation is interrupted by another animation
+            break;
+          case AnimationEndCause.completed:
+            // called when the animation is completed
+            break;
+        }
+      },
       // [AnimatedTo] can be combined with some Animated widgets
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: 300 + (10 * index)),
-        curve: Curves.easeIn,
+      child: Container(
+        // duration: Duration(milliseconds: 300 + (10 * index)),
+        // curve: Curves.easeIn,
         decoration: BoxDecoration(
           color: Colors.primaries[int.parse(item) % Colors.primaries.length]
               .withAlpha(isExpanded ? 255 : 128),
@@ -139,8 +150,8 @@ class _Card extends StatelessWidget {
               : BorderRadius.circular(4),
         ),
         margin: const EdgeInsets.all(2),
-        width: 40,
-        height: 40,
+        width: size,
+        height: size,
         child: Center(
           child: Text(
             item,

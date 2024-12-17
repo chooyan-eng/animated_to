@@ -2,6 +2,14 @@ import 'package:animated_to/src/journey.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+enum AnimationEndCause {
+  /// animation is interrupted by another animation
+  interrupted,
+
+  /// widget achieves its goal
+  completed,
+}
+
 /// AnimatedTo is a widget that animates a child to a new position.
 /// Users of this widget don't need to calculate any animation values
 /// as the calculation is always done by RenderObject.
@@ -29,6 +37,9 @@ class AnimatedTo extends SingleChildRenderObjectWidget {
   /// Whether the animation is enabled.
   final bool enabled;
 
+  /// callback when animation is completed.
+  final void Function(AnimationEndCause cause)? onEnd;
+
   const AnimatedTo({
     super.key,
     super.child,
@@ -38,6 +49,7 @@ class AnimatedTo extends SingleChildRenderObjectWidget {
     this.appearingFrom,
     this.slidingFrom,
     this.enabled = true,
+    this.onEnd,
   });
 
   @override
@@ -49,6 +61,7 @@ class AnimatedTo extends SingleChildRenderObjectWidget {
       appearingFrom: appearingFrom,
       slidingFrom: slidingFrom,
       enabled: enabled,
+      onEnd: onEnd,
     );
   }
 
@@ -61,7 +74,8 @@ class AnimatedTo extends SingleChildRenderObjectWidget {
       ..vsync = vsync
       ..appearingFrom = appearingFrom
       ..slidingFrom = slidingFrom
-      ..enabled = enabled;
+      ..enabled = enabled
+      ..onEnd = onEnd;
   }
 }
 
@@ -74,12 +88,14 @@ class RenderAnimatedRebuild extends RenderProxyBox {
     Offset? appearingFrom,
     Offset? slidingFrom,
     required bool enabled,
+    void Function(AnimationEndCause cause)? onEnd,
   })  : _duration = duration,
         _curve = curve,
         _vsync = vsync,
         _appearingFrom = appearingFrom,
         _slidingFrom = slidingFrom,
-        _enabled = enabled;
+        _enabled = enabled,
+        _onEnd = onEnd;
 
   Duration _duration;
   set duration(Duration value) {
@@ -111,6 +127,11 @@ class RenderAnimatedRebuild extends RenderProxyBox {
     _enabled = value;
   }
 
+  void Function(AnimationEndCause cause)? _onEnd;
+  set onEnd(void Function(AnimationEndCause cause)? value) {
+    _onEnd = value;
+  }
+
   /// current journey
   var _journey = Journey.tighten(Offset.zero);
 
@@ -127,10 +148,12 @@ class RenderAnimatedRebuild extends RenderProxyBox {
   /// start animation with given [journey]
   void _startAnimation(Journey journey) {
     _stopAnimation();
+
     _controller = AnimationController(
       vsync: _vsync,
       duration: _duration,
     )..addListener(markNeedsPaint);
+
     _animation = _controller!
         .drive(
           CurveTween(curve: _curve),
@@ -142,11 +165,16 @@ class RenderAnimatedRebuild extends RenderProxyBox {
           ),
         );
 
-    _controller!.forward();
+    _controller!.forward().then((_) {
+      _onEnd?.call(AnimationEndCause.completed);
+    });
   }
 
   /// stop animation and dispose everything
   void _stopAnimation() {
+    if (_controller?.isAnimating == true) {
+      _onEnd?.call(AnimationEndCause.interrupted);
+    }
     _controller?.removeListener(markNeedsPaint);
     _controller?.dispose();
     _controller = null;
@@ -159,14 +187,12 @@ class RenderAnimatedRebuild extends RenderProxyBox {
       _stopAnimation();
       _journey = Journey.tighten(offset);
       context.paintChild(child!, offset);
-      debugPrint('paint: disabled');
       return;
     }
 
     // if either of _appearingFrom or _slidingFrom is given,
     // animation should be start from that position in the first frame.
     if (_journey.isPreparing) {
-      debugPrint('paint: preparing');
       final from = _appearingFrom ?? offset + (_slidingFrom ?? Offset.zero);
       _journey = Journey(from: from, to: offset);
       if (!_journey.isTightened) {
@@ -176,8 +202,6 @@ class RenderAnimatedRebuild extends RenderProxyBox {
     }
 
     if (_journey.to != offset) {
-      debugPrint('paint: offset changed');
-
       // start animation if the position changed
       // start from current position if still animating
       _journey = Journey(
