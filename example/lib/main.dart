@@ -53,10 +53,14 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
         // workaround to fix scrolling issue by disabling animation when scrolling
         onNotification: (notification) {
           if (notification is ScrollStartNotification) {
-            setState(() => _enabled = false);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              setState(() => _enabled = false);
+            });
           }
           if (notification is ScrollEndNotification) {
-            setState(() => _enabled = true);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              setState(() => _enabled = true);
+            });
           }
           return true;
         },
@@ -121,7 +125,7 @@ class _Card extends StatelessWidget {
       // [GlobalObjectKey] is required to identify the widget
       key: GlobalObjectKey(item),
       duration: Duration(milliseconds: 300 + (10 * index)),
-      curve: Curves.easeInOut,
+      curve: Curves.easeOutQuad,
       enabled: enabled,
       // [AnimatedTo] can be combined with some Animated widgets
       child: AnimatedContainer(

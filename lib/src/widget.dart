@@ -1,3 +1,4 @@
+import 'package:animated_to/src/journey.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
@@ -82,113 +83,112 @@ class RenderAnimatedRebuild extends RenderProxyBox {
 
   Duration _duration;
   set duration(Duration value) {
-    if (_duration == value) return;
     _duration = value;
   }
 
   Curve _curve;
   set curve(Curve value) {
-    if (_curve == value) return;
     _curve = value;
   }
 
   TickerProvider _vsync;
   set vsync(TickerProvider value) {
-    if (_vsync == value) return;
     _vsync = value;
   }
 
   Offset? _appearingFrom;
   set appearingFrom(Offset? value) {
-    if (_appearingFrom == value) return;
     _appearingFrom = value;
   }
 
   Offset? _slidingFrom;
   set slidingFrom(Offset? value) {
-    if (_slidingFrom == value) return;
     _slidingFrom = value;
   }
 
   bool _enabled = true;
   set enabled(bool value) {
-    if (_enabled == value) return;
     _enabled = value;
   }
 
-  Offset? _oldOffset;
-  Offset _targetOffset = Offset.zero;
+  /// current journey
+  var _journey = Journey.tighten(Offset.zero);
+
+  /// for animation
   AnimationController? _controller;
   Animation<Offset>? _animation;
 
   @override
   void detach() {
-    _controller?.removeListener(_onAnimationChanged);
-    _controller?.dispose();
-    _controller = null;
+    _stopAnimation();
     super.detach();
   }
 
-  void _onAnimationChanged() {
-    markNeedsPaint();
-  }
-
-  @override
-  void paint(PaintingContext context, Offset offset) {
-    // if either of _appearingFrom or _slidingFrom is given,
-    // animation should be start from that position in the first frame.
-    if (_oldOffset == null) {
-      _oldOffset = _appearingFrom;
-      _oldOffset ??= offset + (_slidingFrom ?? Offset.zero);
-      _targetOffset = _oldOffset ?? offset;
-    }
-
-    if (!_enabled) {
-      _controller?.dispose();
-      _controller = null;
-      _animation = null;
-      _oldOffset = offset;
-      _targetOffset = offset;
-      context.paintChild(child!, offset);
-      return;
-    }
-
-    // if still _oldOffset is null, meaning _appearingFrom or _slidingFrom is not given,
-    // keep the first position as the next starting position.
-    if (_oldOffset == null) {
-      _oldOffset = offset;
-      _targetOffset = offset;
-    } else if (_targetOffset != offset) {
-      // if the target position is different from the current position,
-      // start the animation.
-      _startAnimation(offset);
-    }
-
-    final animationOffset = _animation?.value ?? offset;
-    context.paintChild(child!, animationOffset);
-  }
-
-  void _startAnimation(Offset newOffset) {
-    _oldOffset = _animation?.value ?? _targetOffset;
-    _targetOffset = newOffset;
-
-    _controller?.dispose();
-    _controller = null;
+  /// start animation with given [journey]
+  void _startAnimation(Journey journey) {
+    _stopAnimation();
     _controller = AnimationController(
       vsync: _vsync,
       duration: _duration,
-    )..addListener(_onAnimationChanged);
+    )..addListener(markNeedsPaint);
     _animation = _controller!
         .drive(
           CurveTween(curve: _curve),
         )
         .drive(
           Tween<Offset>(
-            begin: _oldOffset,
-            end: _targetOffset,
+            begin: journey.from,
+            end: journey.to,
           ),
         );
 
     _controller!.forward();
+  }
+
+  /// stop animation and dispose everything
+  void _stopAnimation() {
+    _controller?.removeListener(markNeedsPaint);
+    _controller?.dispose();
+    _controller = null;
+    _animation = null;
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    if (!_enabled) {
+      _stopAnimation();
+      _journey = Journey.tighten(offset);
+      context.paintChild(child!, offset);
+      debugPrint('paint: disabled');
+      return;
+    }
+
+    // if either of _appearingFrom or _slidingFrom is given,
+    // animation should be start from that position in the first frame.
+    if (_journey.isPreparing) {
+      debugPrint('paint: preparing');
+      final from = _appearingFrom ?? offset + (_slidingFrom ?? Offset.zero);
+      _journey = Journey(from: from, to: offset);
+      if (!_journey.isTightened) {
+        _startAnimation(_journey);
+        return;
+      }
+    }
+
+    if (_journey.to != offset) {
+      debugPrint('paint: offset changed');
+
+      // start animation if the position changed
+      // start from current position if still animating
+      _journey = Journey(
+        from: _animation?.value ?? _journey.to,
+        to: offset,
+      );
+      _startAnimation(_journey);
+    }
+
+    // update position with animating value
+    final animationOffset = _animation?.value ?? offset;
+    context.paintChild(child!, animationOffset);
   }
 }
