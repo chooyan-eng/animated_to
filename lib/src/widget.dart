@@ -162,12 +162,6 @@ class RenderAnimatedRebuild extends RenderProxyBox {
   double? _scrollOffsetWhenAnimationStarted;
   Offset? _lastOffset;
 
-  @override
-  void detach() {
-    _stopAnimation();
-    super.detach();
-  }
-
   /// start animation with given [journey]
   void _startAnimation(Journey journey) {
     _stopAnimation();
@@ -263,7 +257,11 @@ class RenderAnimatedRebuild extends RenderProxyBox {
         if (_journey.to != offset) {
           // start animation from current position if the position changed
           _journey = Journey(
-            from: _animation!.value,
+            from: _animation!.value -
+                Offset(
+                    0,
+                    (_scrollOffset ?? 0) -
+                        (_scrollOffsetWhenAnimationStarted ?? 0)),
             to: offset,
           );
           _startAnimation(_journey);
@@ -290,5 +288,11 @@ class RenderAnimatedRebuild extends RenderProxyBox {
     } else {
       context.paintChild(child!, offset);
     }
+  }
+
+  @override
+  void dispose() {
+    _stopAnimation();
+    super.dispose();
   }
 }

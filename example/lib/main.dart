@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:animated_to/animated_to.dart';
+import 'package:example/listview_page.dart';
 import 'package:example/scrollable_page.dart';
 import 'package:example/simple_demo_page.dart';
 import 'package:example/todo_cards_page.dart';
@@ -100,6 +101,17 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => const SimpleDemoPage(),
+                    ),
+                  );
+                },
+              ),
+              _DrawerMenuItem(
+                title: 'List menu page',
+                vsync: this,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const ListPage(),
                     ),
                   );
                 },
