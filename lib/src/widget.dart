@@ -16,6 +16,7 @@ enum AnimationEndCause {
 ///
 /// TODO(chooyan-eng): Fix the issue that [AnimatedTo] doesn't work on
 /// [Scrollable] kind of widgets.
+
 class AnimatedTo extends SingleChildRenderObjectWidget {
   /// duration to animate the child to the new position.
   final Duration duration;
@@ -40,6 +41,9 @@ class AnimatedTo extends SingleChildRenderObjectWidget {
   /// callback when animation is completed.
   final void Function(AnimationEndCause cause)? onEnd;
 
+  /// [ScrollController] to get scroll offset.
+  final ScrollController? controller;
+
   const AnimatedTo({
     super.key,
     super.child,
@@ -50,10 +54,17 @@ class AnimatedTo extends SingleChildRenderObjectWidget {
     this.slidingFrom,
     this.enabled = true,
     this.onEnd,
+    this.controller,
   });
 
   @override
   RenderObject createRenderObject(BuildContext context) {
+    controller?.addListener(() {
+      final renderObject = context.findRenderObject();
+      if (renderObject is RenderAnimatedRebuild) {
+        renderObject.scrollOffset = controller!.offset;
+      }
+    });
     return RenderAnimatedRebuild(
       duration: duration,
       curve: curve,
@@ -89,13 +100,15 @@ class RenderAnimatedRebuild extends RenderProxyBox {
     Offset? slidingFrom,
     required bool enabled,
     void Function(AnimationEndCause cause)? onEnd,
+    double? scrollOffset,
   })  : _duration = duration,
         _curve = curve,
         _vsync = vsync,
         _appearingFrom = appearingFrom,
         _slidingFrom = slidingFrom,
         _enabled = enabled,
-        _onEnd = onEnd;
+        _onEnd = onEnd,
+        _scrollOffset = scrollOffset;
 
   Duration _duration;
   set duration(Duration value) {
@@ -132,6 +145,11 @@ class RenderAnimatedRebuild extends RenderProxyBox {
     _onEnd = value;
   }
 
+  double? _scrollOffset;
+  set scrollOffset(double? value) {
+    _scrollOffset = value;
+  }
+
   /// current journey
   var _journey = Journey.tighten(Offset.zero);
 
@@ -139,11 +157,10 @@ class RenderAnimatedRebuild extends RenderProxyBox {
   AnimationController? _controller;
   Animation<Offset>? _animation;
 
-  @override
-  void detach() {
-    _stopAnimation();
-    super.detach();
-  }
+  /// for scroll management
+  double? _scrollOffsetCache;
+  double? _scrollOffsetWhenAnimationStarted;
+  Offset? _lastOffset;
 
   /// start animation with given [journey]
   void _startAnimation(Journey journey) {
@@ -166,23 +183,31 @@ class RenderAnimatedRebuild extends RenderProxyBox {
         );
 
     _controller!.forward().then((_) {
-      _onEnd?.call(AnimationEndCause.completed);
+      _stopAnimation();
     });
+    _scrollOffsetWhenAnimationStarted = _scrollOffset ?? 0.0;
   }
 
   /// stop animation and dispose everything
   void _stopAnimation() {
+    if (_controller == null) return;
     if (_controller?.isAnimating == true) {
       _onEnd?.call(AnimationEndCause.interrupted);
+    } else {
+      _onEnd?.call(AnimationEndCause.completed);
     }
     _controller?.removeListener(markNeedsPaint);
     _controller?.dispose();
     _controller = null;
     _animation = null;
+    _scrollOffsetWhenAnimationStarted = null;
   }
 
   @override
   void paint(PaintingContext context, Offset offset) {
+    final lastOffset = _lastOffset;
+    _lastOffset = offset;
+
     if (!_enabled) {
       _stopAnimation();
       _journey = Journey.tighten(offset);
@@ -201,18 +226,73 @@ class RenderAnimatedRebuild extends RenderProxyBox {
       }
     }
 
-    if (_journey.to != offset) {
-      // start animation if the position changed
-      // start from current position if still animating
-      _journey = Journey(
-        from: _animation?.value ?? _journey.to,
-        to: offset,
-      );
-      _startAnimation(_journey);
+    final isAnimating = _controller?.isAnimating == true;
+    final isScrolling = _scrollOffsetCache != _scrollOffset;
+
+    if (isScrolling) {
+      if (!isAnimating) {
+        // scrolling, not animating
+        final scrollGap = (_scrollOffsetCache ?? 0.0) - _scrollOffset!;
+        final positionGap = offset - (lastOffset ?? offset);
+        if (scrollGap.abs() < positionGap.distance.abs() - 20) {
+          // scrolling but also position updated
+          _journey = Journey(
+            from: _journey.to,
+            to: offset,
+          );
+          _startAnimation(_journey);
+        } else {
+          // just scroll by user
+          _scrollOffsetCache = _scrollOffset;
+          _journey = Journey.tighten(offset);
+          super.paint(context, offset);
+          return;
+        }
+      }
+      _scrollOffsetCache = _scrollOffset;
+      _journey = Journey.tighten(offset);
+    } else {
+      if (isAnimating) {
+        // not scrolling, but animating
+        if (_journey.to != offset) {
+          // start animation from current position if the position changed
+          _journey = Journey(
+            from: _animation!.value -
+                Offset(
+                    0,
+                    (_scrollOffset ?? 0) -
+                        (_scrollOffsetWhenAnimationStarted ?? 0)),
+            to: offset,
+          );
+          _startAnimation(_journey);
+        }
+      } else {
+        // not scrolling, not animating either
+        if (_journey.to != offset) {
+          // start animation if the position changed
+          _journey = Journey(
+            from: _journey.to,
+            to: offset,
+          );
+          _startAnimation(_journey);
+        }
+      }
     }
 
-    // update position with animating value
-    final animationOffset = _animation?.value ?? offset;
-    context.paintChild(child!, animationOffset);
+    if (_animation != null) {
+      final scrollGap = _scrollOffset == null
+          ? 0.0
+          : _scrollOffsetWhenAnimationStarted! - (_scrollOffset ?? 0.0);
+      final animationOffset = _animation!.value + Offset(0, scrollGap);
+      context.paintChild(child!, animationOffset);
+    } else {
+      context.paintChild(child!, offset);
+    }
+  }
+
+  @override
+  void dispose() {
+    _stopAnimation();
+    super.dispose();
   }
 }
