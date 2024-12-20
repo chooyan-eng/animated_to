@@ -46,15 +46,16 @@ All what you need to do is causing rebuilds using whatever state management pack
 
 | Argument | Type | Description |
 | --- | --- | --- |
-| `key` | `GlobalKey` | A key to identify the widget even when it's placed at another branch of the widget tree. |
-| `vsync` | `TickerProviderStateMixin` | A ticker provider to provide animation. |
-| `child` | `Widget` | The widget to animate. |
-| `duration` | `Duration` | The duration of the animation. |
-| `curve` | `Curve` | The curve of the animation. |
-| `appearingFrom` | `Offset?` | The start position of the animation in the first frame. This offset is an absolute position in the global coordinate system. |
-| `slidingFrom` | `Offset?` | The start position of the animation in the first frame. This offset is a relative position to the child's intrinsic position. |
-| `enabled` | `bool` | Whether the animation is enabled. Be sure to set `false` when scrolling. Otherwise, the scrolling will look like jerky. |
-| `onEnd` | `void Function(AnimationEndCause cause)?` | The callback when the animation is completed. `cause` shows the reason why the animation is completed. |
+| key | `GlobalKey` | A key to identify the widget even when it's placed at another branch of the widget tree. |
+| vsync | `TickerProviderStateMixin` | A ticker provider to provide animation. |
+| child | `Widget` | The widget to animate. |
+| duration | `Duration` | The duration of the animation. |
+| curve | `Curve` | The curve of the animation. |
+| appearingFrom` | `Offset?` | The start position of the animation in the first frame. This offset is an absolute position in the global coordinate system. |
+| slidingFrom | `Offset?` | The start position of the animation in the first frame. This offset is a relative position to the child's intrinsic position. |
+| enabled | `bool` | Whether the animation is enabled. Be sure to set `false` when scrolling. Otherwise, the scrolling will look like jerky. |
+| onEnd | `void Function(AnimationEndCause cause)?` | The callback when the animation is completed. `cause` shows the reason why the animation is completed. |
+| controller | `AnimationController?` | Required if `AnimatedTo` is on the subtree of `SingleChildScrollView`. Share the controller with the `SingleChildScrollView` to properly animate the widget. |
 
 See [example](example) for more details.
 

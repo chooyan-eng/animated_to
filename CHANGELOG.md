@@ -1,3 +1,6 @@
+## [0.1.1] - 2024.12.20
+- fix behavior on `SingleChildScrollView`
+
 ## [0.1.0] - 2024.12.17
 - write some basic documentation
 
