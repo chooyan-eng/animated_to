@@ -1,4 +1,10 @@
+import 'dart:async';
+
 import 'package:animated_to/animated_to.dart';
+import 'package:example/scrollable_page.dart';
+import 'package:example/simple_demo_page.dart';
+import 'package:example/todo_cards_page.dart';
+import 'package:example/two_lines_page.dart';
 import 'package:flutter/material.dart';
 
 void main() => runApp(const MyApp());
@@ -25,11 +31,11 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
 
   /// Some item objects. In this demo, simply a list of [String].
   final _items = List.generate(
-    5,
+    50,
     (index) => index.toString(),
   );
 
-  bool _enabled = true;
+  final _scrollController = ScrollController();
 
   @override
   Widget build(BuildContext context) {
@@ -41,46 +47,86 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
             opacity: 1.0,
             isExpanded: _isExpanded,
             vsync: this,
-            enabled: _enabled,
+            enabled: true,
+            controller: _scrollController,
           ),
         )
         .toList();
 
     return Scaffold(
+      drawer: Drawer(
+        backgroundColor: Colors.grey[300],
+        child: SafeArea(
+          child: Column(
+            spacing: 4,
+            children: [
+              _DrawerMenuItem(
+                title: 'TODO cards',
+                vsync: this,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const TodoCardsPage(),
+                    ),
+                  );
+                },
+              ),
+              _DrawerMenuItem(
+                title: 'Two line boxes',
+                vsync: this,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const TwoLinesPage(),
+                    ),
+                  );
+                },
+              ),
+              _DrawerMenuItem(
+                title: 'Scrollable',
+                vsync: this,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const ScrollablePage(),
+                    ),
+                  );
+                },
+              ),
+              _DrawerMenuItem(
+                title: 'Simple Demo',
+                vsync: this,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const SimpleDemoPage(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
       appBar: AppBar(title: const Text('Animated Sample Page')),
       // TODO(chooyan-eng): note that [AnimatedTo] doesn't work on scrollable widgets
-      body: NotificationListener<ScrollNotification>(
-        // workaround to fix scrolling issue by disabling animation when scrolling
-        onNotification: (notification) {
-          if (notification is ScrollStartNotification) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              setState(() => _enabled = false);
-            });
-          }
-          if (notification is ScrollEndNotification) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              setState(() => _enabled = true);
-            });
-          }
-          return true;
-        },
-        child: SingleChildScrollView(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: switch (_isExpanded) {
-                // toggle [Wrap] and [Column] with animation
-                true => Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    children: children,
-                  ),
-                false => Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: children,
-                  ),
-              },
-            ),
+      body: SingleChildScrollView(
+        controller: _scrollController,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: switch (_isExpanded) {
+              // toggle [Wrap] and [Column] with animation
+              true => Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: children,
+                ),
+              false => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: children,
+                ),
+            },
           ),
         ),
       ),
@@ -104,6 +150,7 @@ class _Card extends StatelessWidget {
     required this.isExpanded,
     required this.vsync,
     required this.enabled,
+    required this.controller,
   });
 
   final String item;
@@ -112,7 +159,7 @@ class _Card extends StatelessWidget {
   final bool isExpanded;
   final TickerProvider vsync;
   final bool enabled;
-
+  final ScrollController? controller;
   @override
   Widget build(BuildContext context) {
     final size = 60.0;
@@ -128,6 +175,7 @@ class _Card extends StatelessWidget {
       duration: Duration(milliseconds: 300 + (10 * index)),
       curve: Curves.easeOutQuad,
       enabled: enabled,
+      controller: controller,
       onEnd: (cause) {
         switch (cause) {
           case AnimationEndCause.interrupted:
@@ -159,6 +207,77 @@ class _Card extends StatelessWidget {
               color: Colors.white.withAlpha(isExpanded ? 255 : 128),
               fontSize: 24,
               fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerMenuItem extends StatefulWidget {
+  const _DrawerMenuItem({
+    required this.title,
+    required this.onTap,
+    required this.vsync,
+  });
+
+  final String title;
+  final VoidCallback onTap;
+  final TickerProvider vsync;
+
+  @override
+  State<_DrawerMenuItem> createState() => _DrawerMenuItemState();
+}
+
+class _DrawerMenuItemState extends State<_DrawerMenuItem> {
+  var _preparing = true;
+  @override
+  void initState() {
+    super.initState();
+
+    Timer(const Duration(milliseconds: 200), () {
+      setState(() => _preparing = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_preparing) {
+      return const SizedBox.shrink();
+    }
+    return AnimatedTo(
+      vsync: widget.vsync,
+      key: GlobalObjectKey(widget.title),
+      appearingFrom: const Offset(0, -100),
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutQuad,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: Material(
+          borderRadius: BorderRadius.circular(12),
+          color: Theme.of(context).colorScheme.surface,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: widget.onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Text(
+                    widget.title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
