@@ -1,3 +1,8 @@
+## [0.2.0] - 2024.12.27
+- remove unnecessary `vsync` argument
+- rename `key` to `globalKey` and make it `required`
+- some refactoring and write documentation
+
 ## [0.1.1] - 2024.12.20
 - fix behavior on `SingleChildScrollView`
 

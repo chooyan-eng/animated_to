@@ -79,8 +79,7 @@ class _ScrollablePageState extends State<ScrollablePage>
                             controller: _scrollController,
                             duration: const Duration(seconds: 1),
                             curve: Curves.easeInOutCubic,
-                            key: const GlobalObjectKey('afterImage'),
-                            vsync: this,
+                            globalKey: const GlobalObjectKey('afterImage'),
                             onEnd: (cause) {
                               WidgetsBinding.instance
                                   .addPostFrameCallback((timeStamp) {

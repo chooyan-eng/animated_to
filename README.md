@@ -1,12 +1,10 @@
 # animated_to
 
-animated_to provides a widget named `AnimatedTo`. 
+animated_to provides a widget named `AnimatedTo` which enables its child widget **to change its position with animation** when its position is updated for any reason, typically for rebuilding.
 
-<img src="https://github.com/chooyan-eng/animated_to/raw/main/assets/animated_to.gif" alt="AnimatedTo Preview" width="300"/>
+![AnimatedTo Preview](https://github.com/chooyan-eng/animated_to/raw/main/assets/animated_to_1.gif)
 
-`AnimatedTo` enables you to animate whatever widget you want to animate to the next position when rebuild happens and the rebuild updates the position of the widget.
-
-No calculation is necessary. Every calculation is done by Flutter framework, and `AnimatedTo` just _animates_ to the calculated position.
+No calculation is required. Because every calculation is done by `RenderObject` in the Flutter framework, `AnimatedTo` just hires the calculated position and starts animation there.
 
 ## Usage
 
@@ -20,12 +18,11 @@ Container(
 )
 ```
 
-Then, wrap the widget with `AnimatedTo` with some required arguments.
+Then, wrap the widget with `AnimatedTo` with `GlobalKey`.
 
 ```dart
 AnimatedTo(
-  key: _globalKey,
-  vsync: this,
+  globalKey: _globalKey,
   child: Container(
     width: 60,
     height: 60,
@@ -34,32 +31,44 @@ AnimatedTo(
 )
 ```
 
-`key` is `GlobalKey` to keep its `Element` and `RenderObject` alive even when the widget is placed at another branch of the widget tree.
+`GlobalKey` is necessary to keep its `Element` and `RenderObject` alive even when the widget's depth or position changes.
 
-`vsync` requires `TickerProviderStateMixin` for animation. You may typically mixin `TickerProviderStateMixin` in your `State` class of `StatefulWidget`.
-
-That's it!
+And, that's it!
 
 All what you need to do is causing rebuilds using whatever state management packages or just `setState` and change its position. `AnimatedTo` will automatically leads the `child` to the new position with animation.
+
+## Some more features
+
+`appearingFrom` lets you specify the start position of the animation in the first frame. By providing an absolute position in the global coordinate system, the widget will appear there and then animate to the original position.
+
+![appearingFrom demo](https://github.com/chooyan-eng/animated_to/raw/main/assets/animated_to_2.gif)
+
+`slidingFrom` lets you specify the start position of the animation in the first frame as well. By providing a relative position to the child's intrinsic position, the widget will slide from the specified position and then animate to the original position.
+
+![slidingFrom demo](https://github.com/chooyan-eng/animated_to/raw/main/assets/animated_to_3.gif)
+
+## Limitations
+
+- `AnimatedTo` does NOT work with `ListView` because `RenderSliver`'s layout system is totally different from `RenderBox`'s.
+- `AnimatedTo` does NOT work with horizontal or bidirectional scrolling widgets.
 
 ## All arguments
 
 | Argument | Type | Description |
 | --- | --- | --- |
-| key | `GlobalKey` | A key to identify the widget even when it's placed at another branch of the widget tree. |
-| vsync | `TickerProviderStateMixin` | A ticker provider to provide animation. |
-| child | `Widget` | The widget to animate. |
-| duration | `Duration` | The duration of the animation. |
-| curve | `Curve` | The curve of the animation. |
-| appearingFrom` | `Offset?` | The start position of the animation in the first frame. This offset is an absolute position in the global coordinate system. |
-| slidingFrom | `Offset?` | The start position of the animation in the first frame. This offset is a relative position to the child's intrinsic position. |
-| enabled | `bool` | Whether the animation is enabled. Be sure to set `false` when scrolling. Otherwise, the scrolling will look like jerky. |
-| onEnd | `void Function(AnimationEndCause cause)?` | The callback when the animation is completed. `cause` shows the reason why the animation is completed. |
-| controller | `AnimationController?` | Required if `AnimatedTo` is on the subtree of `SingleChildScrollView`. Share the controller with the `SingleChildScrollView` to properly animate the widget. |
+| globalKey | GlobalKey | A key to keep the widget alive even when its depth or position changes. |
+| child | Widget | The widget you want to animate when its position changes. |
+| duration | Duration | The duration of the animation. |
+| curve | Curve | The curve of the animation. |
+| controller | AnimationController? | Required if `AnimatedTo` is on the subtree of `SingleChildScrollView`. Share the controller with the `SingleChildScrollView` to properly animate the widget. |
+| appearingFrom` | Offset? | The start position of the animation in the first frame. This offset is an absolute position in the global coordinate system. |
+| slidingFrom | Offset? | The start position of the animation in the first frame. This offset is a relative position to the child's intrinsic position. |
+| enabled | bool | Whether the animation is enabled. |
+| onEnd | void Function(AnimationEndCause cause)? | The callback when the animation is completed. `cause` shows the reason why the animation is completed. |
 
 See [example](example) for more details.
 
-Or, see my X account [@chooyan_i18n](https://x.com/chooyan_i18n) posting some example screenshots.
+Author's X account [@tsuyoshi_chujo](https://x.com/tsuyoshi_chujo) also posts some example screenshots.
 
 # Contact
 

@@ -60,10 +60,9 @@ class _ListPageState extends State<ListPage> with TickerProviderStateMixin {
                     trailing: selectedIndex == items.indexOf(item)
                         ? AnimatedTo(
                             controller: _controller,
-                            vsync: this,
-                            key: GlobalObjectKey('selected_item'),
+                            globalKey: GlobalObjectKey('selected_item'),
                             slidingFrom: const Offset(0, 200),
-                            duration: const Duration(milliseconds: 1000),
+                            duration: const Duration(milliseconds: 300),
                             curve: Curves.easeInOut,
                             child: Container(
                               width: 12, // Smaller indicator

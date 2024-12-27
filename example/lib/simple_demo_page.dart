@@ -40,8 +40,7 @@ class _SimpleDemoPageState extends State<SimpleDemoPage>
                   child: AnimatedTo(
                     duration: Duration(milliseconds: 500 + (index * 100)),
                     curve: Curves.easeInOut,
-                    vsync: this,
-                    key: _keys[index],
+                    globalKey: _keys[index],
                     child: AnimatedContainer(
                       duration: Duration(milliseconds: 500 + (index * 100)),
                       curve: Curves.easeInOut,

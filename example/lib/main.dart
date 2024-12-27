@@ -180,10 +180,8 @@ class _Card extends StatelessWidget {
       appearingFrom: const Offset(100, 0),
       // slidingFrom: const Offset(0, 100),
 
-      // [TickerProviderStateMixin] is currently required to use [AnimatedTo]
-      vsync: vsync,
       // [GlobalObjectKey] is required to identify the widget
-      key: GlobalObjectKey(item),
+      globalKey: GlobalObjectKey(item),
       duration: Duration(milliseconds: 300 + (10 * index)),
       curve: Curves.easeOutQuad,
       enabled: enabled,
@@ -259,8 +257,7 @@ class _DrawerMenuItemState extends State<_DrawerMenuItem> {
       return const SizedBox.shrink();
     }
     return AnimatedTo(
-      vsync: widget.vsync,
-      key: GlobalObjectKey(widget.title),
+      globalKey: GlobalObjectKey(widget.title),
       appearingFrom: const Offset(0, -100),
       duration: const Duration(milliseconds: 500),
       curve: Curves.easeOutQuad,

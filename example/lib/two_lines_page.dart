@@ -83,8 +83,7 @@ class _Item extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedTo(
-      vsync: vsync,
-      key: GlobalObjectKey(item),
+      globalKey: GlobalObjectKey(item),
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(

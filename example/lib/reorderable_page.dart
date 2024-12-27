@@ -29,8 +29,7 @@ class _TapCancelDemoState extends State<TapCancelDemo>
           children: _cubes.entries
               .map(
                 (cube) => AnimatedTo(
-                  key: cube.value,
-                  vsync: this,
+                  globalKey: cube.value,
                   duration: const Duration(milliseconds: 120),
                   curve: Curves.linear,
                   child: Container(

@@ -2,6 +2,7 @@ import 'package:animated_to/src/journey.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+/// Cause of animation end.
 enum AnimationEndCause {
   /// animation is interrupted by another animation
   interrupted,
@@ -10,42 +11,108 @@ enum AnimationEndCause {
   completed,
 }
 
-/// AnimatedTo is a widget that animates a child to a new position.
-/// Users of this widget don't need to calculate any animation values
-/// as the calculation is always done by RenderObject.
+/// [AnimatedTo] is a widget that animates a given [child] when its position changes for any reason.
+/// You don't need to calculate any animation values, as the calculation is always done by [RenderObject].
 ///
-/// TODO(chooyan-eng): Fix the issue that [AnimatedTo] doesn't work on
-/// [Scrollable] kind of widgets.
+/// Example:
+/// ```dart
+/// final widget = AnimatedTo(
+///   globalKey: GlobalObjectKey(item),
+///   child: Container(
+///     width: 100,
+///     height: 100,
+///     color: Colors.blue,
+///   ),
+/// );
+///
+/// // if _horizontal is true, the widget is in Row.
+/// // otherwise, the widget is in Column.
+/// return _horizontal ? Row(children: [widget, widget])
+///   : Column(children: [widget, widget]);
+/// ```
+///
+/// In the example above, the widget is automatically animated when _horizontal is changed and rebuilt.
+///
+/// Because [AnimatedTo] need to be kept alive even if its position or depth in the widget tree is changed,
+/// [GlobalKey] must be provided to avoid the Flutter framework from disposing of it.
+class AnimatedTo extends StatefulWidget {
+  const AnimatedTo({
+    required this.globalKey,
+    this.duration,
+    this.curve,
+    this.appearingFrom,
+    this.slidingFrom,
+    this.enabled = true,
+    this.onEnd,
+    this.controller,
+    this.child,
+  }) : super(key: globalKey);
 
-class AnimatedTo extends SingleChildRenderObjectWidget {
-  /// duration to animate the child to the new position.
-  final Duration duration;
+  /// [GlobalKey] to keep the widget alive even if its position or depth in the widget tree is changed.
+  final GlobalKey globalKey;
 
-  /// curve to animate the child to the new position.
-  final Curve curve;
+  /// [Duration] to animate the child to the new position.
+  final Duration? duration;
 
-  /// [TickerProvider] object for [AnimationController].
-  final TickerProvider vsync;
+  /// [Curve] to animate the child to the new position.
+  final Curve? curve;
 
-  /// [child] will start animation from [appearingFrom] in the first frame.
+  /// If [appearingFrom] is given, [child] will start animation from [appearingFrom] in the first frame.
   /// This indicates absolute position in the global coordinate system.
   final Offset? appearingFrom;
 
-  /// [child] will start animation from [slidingFrom] in the first frame.
+  /// If [slidingFrom] is given, [child] will start animation from [slidingFrom] in the first frame.
   /// This indicates relative position to child's intrinsic position.
   final Offset? slidingFrom;
 
   /// Whether the animation is enabled.
+  /// If false, the [child] will update its position without animation.
   final bool enabled;
 
   /// callback when animation is completed.
   final void Function(AnimationEndCause cause)? onEnd;
 
   /// [ScrollController] to get scroll offset.
+  /// This must be provided if the child is in a [SingleChildScrollView].
+  ///
+  /// Note: [ListView] and its families are not supported currently.
   final ScrollController? controller;
 
-  const AnimatedTo({
-    super.key,
+  /// [child] to animate.
+  final Widget? child;
+
+  @override
+  State<AnimatedTo> createState() => _AnimatedToState();
+}
+
+class _AnimatedToState extends State<AnimatedTo> with TickerProviderStateMixin {
+  @override
+  Widget build(BuildContext context) {
+    return _AnimatedToRenderObjectWidget(
+      vsync: this,
+      duration: widget.duration ?? const Duration(milliseconds: 300),
+      curve: widget.curve ?? Curves.easeInOut,
+      appearingFrom: widget.appearingFrom,
+      slidingFrom: widget.slidingFrom,
+      enabled: widget.enabled,
+      onEnd: widget.onEnd,
+      controller: widget.controller,
+      child: widget.child,
+    );
+  }
+}
+
+class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
+  final Duration duration;
+  final Curve curve;
+  final TickerProvider vsync;
+  final Offset? appearingFrom;
+  final Offset? slidingFrom;
+  final bool enabled;
+  final void Function(AnimationEndCause cause)? onEnd;
+  final ScrollController? controller;
+
+  const _AnimatedToRenderObjectWidget({
     super.child,
     required this.vsync,
     this.duration = const Duration(milliseconds: 300),
@@ -59,13 +126,14 @@ class AnimatedTo extends SingleChildRenderObjectWidget {
 
   @override
   RenderObject createRenderObject(BuildContext context) {
+    // listen to scroll offset and update [_scrollOffset] of [_RenderAnimatedTo] when it changes.
     controller?.addListener(() {
       final renderObject = context.findRenderObject();
-      if (renderObject is RenderAnimatedRebuild) {
+      if (renderObject is _RenderAnimatedTo) {
         renderObject.scrollOffset = controller!.offset;
       }
     });
-    return RenderAnimatedRebuild(
+    return _RenderAnimatedTo(
       duration: duration,
       curve: curve,
       vsync: vsync,
@@ -78,7 +146,7 @@ class AnimatedTo extends SingleChildRenderObjectWidget {
 
   @override
   void updateRenderObject(
-      BuildContext context, RenderAnimatedRebuild renderObject) {
+      BuildContext context, _RenderAnimatedTo renderObject) {
     renderObject
       ..duration = duration
       ..curve = curve
@@ -91,8 +159,8 @@ class AnimatedTo extends SingleChildRenderObjectWidget {
 }
 
 /// [RenderObject] implementation for [AnimatedTo].
-class RenderAnimatedRebuild extends RenderProxyBox {
-  RenderAnimatedRebuild({
+class _RenderAnimatedTo extends RenderProxyBox {
+  _RenderAnimatedTo({
     required Duration duration,
     required Curve curve,
     required TickerProvider vsync,
@@ -145,6 +213,7 @@ class RenderAnimatedRebuild extends RenderProxyBox {
     _onEnd = value;
   }
 
+  /// This field is always updated by [controller]'s callback.
   double? _scrollOffset;
   set scrollOffset(double? value) {
     _scrollOffset = value;
@@ -169,7 +238,10 @@ class RenderAnimatedRebuild extends RenderProxyBox {
     _controller = AnimationController(
       vsync: _vsync,
       duration: _duration,
-    )..addListener(markNeedsPaint);
+    );
+
+    _controller?.duration = _duration;
+    _controller!.addListener(markNeedsPaint);
 
     _animation = _controller!
         .drive(
@@ -203,38 +275,55 @@ class RenderAnimatedRebuild extends RenderProxyBox {
     _scrollOffsetWhenAnimationStarted = null;
   }
 
+  /// [offset] is the position where [child] should be painted if no animation is running.
+  /// [_RenderAnimatedTo] prevents the [child] from being painted at [offset],
+  /// and paints at animating position instead by calling [context.paintChild].
+  ///
+  /// note that [offset] also changes when scrolling on [SingleChildScrollView].
   @override
   void paint(PaintingContext context, Offset offset) {
-    final lastOffset = _lastOffset;
-    _lastOffset = offset;
-
+    // if disabled, just keep the position for the next chance to animate.
     if (!_enabled) {
       _stopAnimation();
       _journey = Journey.tighten(offset);
-      context.paintChild(child!, offset);
+      super.paint(context, offset);
       return;
     }
 
-    // if either of _appearingFrom or _slidingFrom is given,
-    // animation should be start from that position in the first frame.
+    // only in the first frame
     if (_journey.isPreparing) {
-      final from = _appearingFrom ?? offset + (_slidingFrom ?? Offset.zero);
-      _journey = Journey(from: from, to: offset);
-      if (!_journey.isTightened) {
-        _startAnimation(_journey);
+      // if neither of [_appearingFrom] or [_slidingFrom] is given,
+      // just render [child] with the default operation.
+      if (_appearingFrom == null && _slidingFrom == null) {
+        _journey = Journey.tighten(offset);
+        super.paint(context, offset);
         return;
       }
+
+      // if either of [_appearingFrom] or [_slidingFrom] is given,
+      // animation should be start from that position in the first frame.
+      _journey = Journey(
+        from: _appearingFrom ?? offset + _slidingFrom!,
+        to: offset,
+      );
+      _startAnimation(_journey);
+      return;
     }
+
+    final lastOffset = _lastOffset;
+    _lastOffset = offset;
 
     final isAnimating = _controller?.isAnimating == true;
     final isScrolling = _scrollOffsetCache != _scrollOffset;
 
     if (isScrolling) {
       if (!isAnimating) {
-        // scrolling, not animating
+        // scrolling, but not animating
         final scrollGap = (_scrollOffsetCache ?? 0.0) - _scrollOffset!;
         final positionGap = offset - (lastOffset ?? offset);
-        if (scrollGap.abs() < positionGap.distance.abs() - 20) {
+        // TODO(chooyan-eng): Because we can't tell [position] is updated because of scrolling or rebuilding,
+        // less than 40 is a magic number to estimate the position is updated because of scrolling.
+        if ((scrollGap - positionGap.distance).abs() > 40) {
           // scrolling but also position updated
           _journey = Journey(
             from: _journey.to,
@@ -249,19 +338,24 @@ class RenderAnimatedRebuild extends RenderProxyBox {
           return;
         }
       }
+
+      // cache scroll offset and position considering scroll gap
+      // regardless of whether animating now or not.
       _scrollOffsetCache = _scrollOffset;
       _journey = Journey.tighten(offset);
     } else {
       if (isAnimating) {
         // not scrolling, but animating
         if (_journey.to != offset) {
-          // start animation from current position if the position changed
+          // if [position] is updated during animation,
+          // start another animation from current position
           _journey = Journey(
             from: _animation!.value -
                 Offset(
-                    0,
-                    (_scrollOffset ?? 0) -
-                        (_scrollOffsetWhenAnimationStarted ?? 0)),
+                  0,
+                  (_scrollOffset ?? 0) -
+                      (_scrollOffsetWhenAnimationStarted ?? 0),
+                ),
             to: offset,
           );
           _startAnimation(_journey);
