@@ -175,15 +175,14 @@ class _Card extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = 60.0;
-    return AnimatedTo(
+    return AnimatedTo.usingSpring(
       // try either of [appearingFrom] or [slidingFrom]
       appearingFrom: const Offset(100, 0),
       // slidingFrom: const Offset(0, 100),
 
       // [GlobalObjectKey] is required to identify the widget
       globalKey: GlobalObjectKey(item),
-      duration: Duration(milliseconds: 300 + (10 * index)),
-      curve: Curves.easeOutQuad,
+      spring: Spring.defaultIOS.copyWith(durationSeconds: 0.4 + 0.01 * index),
       enabled: enabled,
       controller: controller,
       onEnd: (cause) {

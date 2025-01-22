@@ -138,9 +138,10 @@ class _Item extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedTo(
+    return AnimatedTo.usingSpring(
       enabled: enabled,
       globalKey: GlobalObjectKey(item),
+      spring: Spring.bouncy,
       slidingFrom: Offset(0, 30),
       child: GestureDetector(
         onTap: onTap,
