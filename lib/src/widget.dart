@@ -1,3 +1,5 @@
+import 'package:animated_to/src/action.dart';
+import 'package:animated_to/src/action_composer.dart';
 import 'package:animated_to/src/journey.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -226,54 +228,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
   AnimationController? _controller;
   Animation<Offset>? _animation;
 
-  /// for scroll management
-  double? _scrollOffsetCache;
-  double? _scrollOffsetWhenAnimationStarted;
-  Offset? _lastOffset;
-
-  /// start animation with given [journey]
-  void _startAnimation(Journey journey) {
-    _stopAnimation();
-
-    _controller = AnimationController(
-      vsync: _vsync,
-      duration: _duration,
-    );
-
-    _controller?.duration = _duration;
-    _controller!.addListener(markNeedsPaint);
-
-    _animation = _controller!
-        .drive(
-          CurveTween(curve: _curve),
-        )
-        .drive(
-          Tween<Offset>(
-            begin: journey.from,
-            end: journey.to,
-          ),
-        );
-
-    _controller!.forward().then((_) {
-      _stopAnimation();
-    });
-    _scrollOffsetWhenAnimationStarted = _scrollOffset ?? 0.0;
-  }
-
-  /// stop animation and dispose everything
-  void _stopAnimation() {
-    if (_controller == null) return;
-    if (_controller?.isAnimating == true) {
-      _onEnd?.call(AnimationEndCause.interrupted);
-    } else {
-      _onEnd?.call(AnimationEndCause.completed);
-    }
-    _controller?.removeListener(markNeedsPaint);
-    _controller?.dispose();
-    _controller = null;
-    _animation = null;
-    _scrollOffsetWhenAnimationStarted = null;
-  }
+  var _cache = PositionCache();
 
   /// [offset] is the position where [child] should be painted if no animation is running.
   /// [_RenderAnimatedTo] prevents the [child] from being painted at [offset],
@@ -283,110 +238,131 @@ class _RenderAnimatedTo extends RenderProxyBox {
   @override
   void paint(PaintingContext context, Offset offset) {
     // if disabled, just keep the position for the next chance to animate.
-    if (!_enabled) {
-      _stopAnimation();
-      _journey = Journey.tighten(offset);
-      super.paint(context, offset);
-      return;
-    }
-
-    // only in the first frame
-    if (_journey.isPreparing) {
-      // if neither of [_appearingFrom] or [_slidingFrom] is given,
-      // just render [child] with the default operation.
-      if (_appearingFrom == null && _slidingFrom == null) {
-        _journey = Journey.tighten(offset);
-        super.paint(context, offset);
-        return;
-      }
-
+    final List<MutationAction> prioriActions = switch ((_enabled)) {
+      (false) => composeDisabled(_controller, offset, context),
       // if either of [_appearingFrom] or [_slidingFrom] is given,
       // animation should be start from that position in the first frame.
-      _journey = Journey(
-        from: _appearingFrom ?? offset + _slidingFrom!,
-        to: offset,
-      );
-      _startAnimation(_journey);
+      (true) => [
+          if (_journey.isPreparing)
+            ...composeFirstFrame(
+              _appearingFrom,
+              _slidingFrom,
+              offset,
+              _scrollOffset ?? 0.0,
+              context,
+            ),
+        ],
+    };
+
+    // apply mutation and return if there are any actions to apply,
+    // which means it's disabled or first frame.
+    if (prioriActions.isNotEmpty) {
+      _applyMutation(prioriActions);
       return;
     }
 
-    final lastOffset = _lastOffset;
-    _lastOffset = offset;
+    // Animation is now active, regardless of animating right now or not.
+    final animationActions = composeAnimation(
+      _controller,
+      _animation,
+      _cache,
+      offset,
+      _journey,
+      _scrollOffset,
+      context,
+    );
 
-    final isAnimating = _controller?.isAnimating == true;
-    final isScrolling = _scrollOffsetCache != _scrollOffset;
+    _applyMutation(animationActions);
+  }
 
-    if (isScrolling) {
-      if (!isAnimating) {
-        // scrolling, but not animating
-        final scrollGap = (_scrollOffsetCache ?? 0.0) - _scrollOffset!;
-        final positionGap = offset - (lastOffset ?? offset);
-        // TODO(chooyan-eng): Because we can't tell [position] is updated because of scrolling or rebuilding,
-        // less than 40 is a magic number to estimate the position is updated because of scrolling.
-        if ((scrollGap - positionGap.distance).abs() > 40) {
-          // scrolling but also position updated
-          _journey = Journey(
-            from: _journey.to,
-            to: offset,
+  /// only method to apply mutation
+  void _applyMutation(List<MutationAction> actions) {
+    for (final action in actions) {
+      switch (action) {
+        case JourneyMutation(:final value):
+          _journey = value;
+        case AnimationStart(:final journey):
+          _controller = AnimationController(
+            vsync: _vsync,
+            duration: _duration,
           );
-          _startAnimation(_journey);
-        } else {
-          // just scroll by user
-          _scrollOffsetCache = _scrollOffset;
-          _journey = Journey.tighten(offset);
-          super.paint(context, offset);
-          return;
-        }
-      }
 
-      // cache scroll offset and position considering scroll gap
-      // regardless of whether animating now or not.
-      _scrollOffsetCache = _scrollOffset;
-      _journey = Journey.tighten(offset);
-    } else {
-      if (isAnimating) {
-        // not scrolling, but animating
-        if (_journey.to != offset) {
-          // if [position] is updated during animation,
-          // start another animation from current position
-          _journey = Journey(
-            from: _animation!.value -
-                Offset(
-                  0,
-                  (_scrollOffset ?? 0) -
-                      (_scrollOffsetWhenAnimationStarted ?? 0),
+          _controller?.duration = _duration;
+          _controller!.addListener(markNeedsPaint);
+
+          _animation = _controller!
+              .drive(
+                CurveTween(curve: _curve),
+              )
+              .drive(
+                Tween<Offset>(
+                  begin: journey.from,
+                  end: journey.to,
                 ),
-            to: offset,
-          );
-          _startAnimation(_journey);
-        }
-      } else {
-        // not scrolling, not animating either
-        if (_journey.to != offset) {
-          // start animation if the position changed
-          _journey = Journey(
-            from: _journey.to,
-            to: offset,
-          );
-          _startAnimation(_journey);
-        }
-      }
-    }
+              );
 
-    if (_animation != null) {
-      final scrollGap = _scrollOffset == null
-          ? 0.0
-          : _scrollOffsetWhenAnimationStarted! - (_scrollOffset ?? 0.0);
-      final animationOffset = _animation!.value + Offset(0, scrollGap);
-      context.paintChild(child!, animationOffset);
-    } else {
-      context.paintChild(child!, offset);
+          _controller!.forward().then((_) {
+            _applyMutation([AnimationEnd()]);
+          });
+        case AnimationEnd():
+          _onEnd?.call(AnimationEndCause.completed);
+          _controller?.removeListener(markNeedsPaint);
+          _controller?.dispose();
+          _controller = null;
+          _animation = null;
+        case AnimationCancel():
+          _onEnd?.call(AnimationEndCause.interrupted);
+          _controller?.removeListener(markNeedsPaint);
+          _controller?.dispose();
+          _controller = null;
+          _animation = null;
+        case PaintChild(:final offset, :final context):
+          context.paintChild(child!, offset);
+        case PositionCacheMutation(
+            :final scrollOffset,
+            :final scrollOffsetWhenAnimationStarted,
+            :final lastOffset
+          ):
+          _cache = _cache.copyWith(
+            scrollOffsetCache: scrollOffset,
+            scrollOffsetWhenAnimationStarted: scrollOffsetWhenAnimationStarted,
+            lastOffset: lastOffset,
+          );
+      }
     }
   }
 
   @override
   void dispose() {
-    _stopAnimation();
+    if (_controller != null) {
+      _applyMutation(
+        [_controller!.isAnimating ? AnimationCancel() : AnimationEnd()],
+      );
+    }
     super.dispose();
   }
+}
+
+class PositionCache {
+  PositionCache({
+    this.scrollOffsetCache,
+    this.scrollOffsetWhenAnimationStarted,
+    this.lastOffset,
+  });
+
+  final double? scrollOffsetCache;
+  final double? scrollOffsetWhenAnimationStarted;
+  final Offset? lastOffset;
+
+  PositionCache copyWith({
+    double? scrollOffsetCache,
+    double? scrollOffsetWhenAnimationStarted,
+    Offset? lastOffset,
+  }) =>
+      PositionCache(
+        scrollOffsetCache: scrollOffsetCache ?? this.scrollOffsetCache,
+        scrollOffsetWhenAnimationStarted: scrollOffsetWhenAnimationStarted ??
+            this.scrollOffsetWhenAnimationStarted,
+        lastOffset: lastOffset ?? this.lastOffset,
+      );
 }
