@@ -28,7 +28,7 @@ class _TapCancelDemoState extends State<TapCancelDemo>
           spacing: 10,
           children: _cubes.entries
               .map(
-                (cube) => AnimatedTo(
+                (cube) => AnimatedTo.curve(
                   globalKey: cube.value,
                   duration: const Duration(milliseconds: 120),
                   curve: Curves.linear,

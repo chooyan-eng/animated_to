@@ -21,44 +21,48 @@ class _TwoLinesPageState extends State<TwoLinesPage>
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Stack(
           children: [
-            Column(
-              spacing: 10,
-              children: _leftLineItems
-                  .map(
-                    (item) => _Item(
-                      item: item,
-                      vsync: this,
-                      onTap: () {
-                        setState(() {
-                          _leftLineItems.remove(item);
-                          _rightLineItems.add(item);
-                        });
-                      },
-                      color: Colors.amberAccent,
-                    ),
-                  )
-                  .toList(),
-            ),
-            Column(
-              spacing: 10,
-              children: _rightLineItems
-                  .map(
-                    (item) => _Item(
-                      item: item,
-                      vsync: this,
-                      onTap: () {
-                        setState(() {
-                          _rightLineItems.remove(item);
-                          _leftLineItems.add(item);
-                        });
-                      },
-                      color: Colors.blueAccent,
-                    ),
-                  )
-                  .toList(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  spacing: 10,
+                  children: _leftLineItems
+                      .map(
+                        (item) => _SpringItem(
+                          item: item,
+                          vsync: this,
+                          onTap: () {
+                            setState(() {
+                              _leftLineItems.remove(item);
+                              _rightLineItems.add(item);
+                            });
+                          },
+                          color: Colors.amberAccent,
+                        ),
+                      )
+                      .toList(),
+                ),
+                Column(
+                  spacing: 10,
+                  children: _rightLineItems
+                      .map(
+                        (item) => _SpringItem(
+                          item: item,
+                          vsync: this,
+                          onTap: () {
+                            setState(() {
+                              _rightLineItems.remove(item);
+                              _leftLineItems.add(item);
+                            });
+                          },
+                          color: Colors.blueAccent,
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
             ),
           ],
         ),
@@ -67,8 +71,8 @@ class _TwoLinesPageState extends State<TwoLinesPage>
   }
 }
 
-class _Item extends StatelessWidget {
-  const _Item({
+class _SpringItem extends StatelessWidget {
+  const _SpringItem({
     required this.item,
     required this.vsync,
     required this.onTap,
@@ -82,12 +86,12 @@ class _Item extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedTo(
+    return AnimatedTo.spring(
       globalKey: GlobalObjectKey(item),
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 500),
           curve: Curves.easeIn,
           width: 60,
           height: 60,
@@ -96,14 +100,15 @@ class _Item extends StatelessWidget {
             color: color,
           ),
           child: Center(
-              child: Text(
-            item,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+            child: Text(
+              item,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
-          )),
+          ),
         ),
       ),
     );

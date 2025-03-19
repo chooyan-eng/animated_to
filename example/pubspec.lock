@@ -159,6 +159,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.10.0"
+  springster:
+    dependency: "direct main"
+    description:
+      name: springster
+      sha256: b8a98d0158de51408813fe276035baf9928efc6000048456d43ca56b2f023665
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.0"
   stack_trace:
     dependency: transitive
     description:

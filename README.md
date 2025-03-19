@@ -4,7 +4,7 @@ animated_to provides a widget named `AnimatedTo` which enables its child widget 
 
 ![AnimatedTo Preview](https://github.com/chooyan-eng/animated_to/raw/main/assets/animated_to_1.gif)
 
-No calculation is required. Because every calculation is done by `RenderObject` in the Flutter framework, `AnimatedTo` just hires the calculated position and starts animation there.
+No calculation is required. Because every calculation is `RenderObject`'s business in the Flutter framework, `AnimatedTo` just hires the calculated position and starts animation there.
 
 ## Usage
 
@@ -18,10 +18,10 @@ Container(
 )
 ```
 
-Then, wrap the widget with `AnimatedTo` with `GlobalKey`.
+Then, wrap the widget with `AnimatedTo.curve` or `AnimatedTo.spring` passing `GlobalKey`.
 
 ```dart
-AnimatedTo(
+AnimatedTo.curve(
   globalKey: _globalKey,
   child: Container(
     width: 60,
@@ -31,11 +31,25 @@ AnimatedTo(
 )
 ```
 
-`GlobalKey` is necessary to keep its `Element` and `RenderObject` alive even when the widget's depth or position changes.
+Note that `GlobalKey` is necessary to keep its `RenderObject` alive even when the widget's depth or position changes.
 
 And, that's it!
 
 All what you need to do is causing rebuilds using whatever state management packages or just `setState` and change its position. `AnimatedTo` will automatically leads the `child` to the new position with animation.
+
+## Spring animation
+
+`animated_to` provides `AnimatedTo.spring` which animates its child using `SpringSimulation`.
+
+https://api.flutter.dev/flutter/physics/SpringSimulation-class.html
+
+This simulates its position transition based on the physical simulation, which make the animations smooth and natural.
+
+What you have to do is just switch `AnimatedTo.curve` into `AnimatedTo.spring` to activate spring simulation. You can also configure your own `SpringDescription` using `description` argument, or you can use pre-defined configuration using [@timcreatedit](https://github.com/timcreatedit)'s `springster` package. 
+
+https://pub.dev/packages/springster
+
+As `springster` is also used inside `animated_to` package(thanks @timcreatedit!), make sure you may have potential risk of dependency conflicts when directly depending on the package on your app side.
 
 ## Some more features
 
@@ -58,8 +72,9 @@ All what you need to do is causing rebuilds using whatever state management pack
 | --- | --- | --- |
 | globalKey | GlobalKey | A key to keep the widget alive even when its depth or position changes. |
 | child | Widget | The widget you want to animate when its position changes. |
-| duration | Duration | The duration of the animation. |
-| curve | Curve | The curve of the animation. |
+| duration | Duration | (curve only) The duration of the animation. |
+| curve | Curve | (curve only) The curve of the animation. |
+| description | SpringDescription | (spring only) The configuration of the spring simulation. |
 | controller | AnimationController? | Required if `AnimatedTo` is on the subtree of `SingleChildScrollView`. Share the controller with the `SingleChildScrollView` to properly animate the widget. |
 | appearingFrom` | Offset? | The start position of the animation in the first frame. This offset is an absolute position in the global coordinate system. |
 | slidingFrom | Offset? | The start position of the animation in the first frame. This offset is a relative position to the child's intrinsic position. |
