@@ -1,5 +1,6 @@
 import 'package:animated_to/src/action.dart';
 import 'package:animated_to/src/action_composer.dart';
+import 'package:animated_to/src/helper.dart';
 import 'package:animated_to/src/journey.dart';
 import 'package:animated_to/src/widget.dart';
 import 'package:flutter/rendering.dart';
