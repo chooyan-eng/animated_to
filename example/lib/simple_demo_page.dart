@@ -1,5 +1,6 @@
 import 'package:animated_to/animated_to.dart';
 import 'package:flutter/material.dart';
+import 'package:springster/springster.dart';
 
 class SimpleDemoPage extends StatefulWidget {
   const SimpleDemoPage({super.key});
@@ -32,15 +33,17 @@ class _SimpleDemoPageState extends State<SimpleDemoPage>
           SizedBox(
             height: 400,
             child: Stack(
-              children: List.generate(10, (index) {
+              children: List.generate(5, (index) {
                 return Positioned(
                   left: _isLeft ? 50 : null,
                   right: _isLeft ? null : 50,
                   top: index * (50 + 8.0),
-                  child: AnimatedTo(
-                    duration: Duration(milliseconds: 500 + (index * 100)),
-                    curve: Curves.easeInOut,
+                  child: AnimatedTo.spring(
                     globalKey: _keys[index],
+                    description: Spring.bouncy.copyWith(
+                      durationSeconds:
+                          Spring.defaultIOS.durationSeconds + (0.1 * index),
+                    ),
                     child: AnimatedContainer(
                       duration: Duration(milliseconds: 500 + (index * 100)),
                       curve: Curves.easeInOut,

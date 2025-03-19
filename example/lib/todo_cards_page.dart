@@ -138,7 +138,7 @@ class _Item extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedTo(
+    return AnimatedTo.spring(
       enabled: enabled,
       globalKey: GlobalObjectKey(item),
       slidingFrom: Offset(0, 30),

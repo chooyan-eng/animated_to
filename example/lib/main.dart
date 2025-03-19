@@ -4,6 +4,7 @@ import 'package:animated_to/animated_to.dart';
 import 'package:example/listview_page.dart';
 import 'package:example/scrollable_page.dart';
 import 'package:example/simple_demo_page.dart';
+import 'package:example/spring_page.dart';
 import 'package:example/todo_cards_page.dart';
 import 'package:example/two_lines_page.dart';
 import 'package:flutter/material.dart';
@@ -61,6 +62,17 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
           child: Column(
             spacing: 4,
             children: [
+              _DrawerMenuItem(
+                title: 'Spring Demo',
+                vsync: this,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const SpringPage(),
+                    ),
+                  );
+                },
+              ),
               _DrawerMenuItem(
                 title: 'TODO cards',
                 vsync: this,
@@ -153,7 +165,7 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
   }
 }
 
-/// A circle or a rectangle shaped widget to be animated with [AnimatedTo].
+/// A circle or a rectangle shaped widget to be animated with [CurveAnimatedTo].
 class _Card extends StatelessWidget {
   const _Card({
     required this.item,
@@ -175,15 +187,15 @@ class _Card extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = 60.0;
-    return AnimatedTo(
+    return AnimatedTo.spring(
       // try either of [appearingFrom] or [slidingFrom]
       appearingFrom: const Offset(100, 0),
       // slidingFrom: const Offset(0, 100),
 
       // [GlobalObjectKey] is required to identify the widget
       globalKey: GlobalObjectKey(item),
-      duration: Duration(milliseconds: 300 + (10 * index)),
-      curve: Curves.easeOutQuad,
+      // duration: Duration(milliseconds: 300 + (10 * index)),
+      // curve: Curves.easeOutQuad,
       enabled: enabled,
       controller: controller,
       onEnd: (cause) {
@@ -256,11 +268,11 @@ class _DrawerMenuItemState extends State<_DrawerMenuItem> {
     if (_preparing) {
       return const SizedBox.shrink();
     }
-    return AnimatedTo(
+    return AnimatedTo.spring(
       globalKey: GlobalObjectKey(widget.title),
       appearingFrom: const Offset(0, -100),
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeOutQuad,
+      // duration: const Duration(milliseconds: 500),
+      // curve: Curves.easeOutQuad,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Material(

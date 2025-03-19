@@ -1,17 +1,15 @@
-import 'package:animated_to/animated_to.dart';
 import 'package:animated_to/src/action.dart';
 import 'package:animated_to/src/action_composer.dart';
-import 'package:animated_to/src/helper.dart';
 import 'package:animated_to/src/journey.dart';
-import 'package:flutter/material.dart';
+import 'package:animated_to/src/widget.dart';
 import 'package:flutter/rendering.dart';
-import 'package:springster/springster.dart';
+import 'package:flutter/widgets.dart';
 
-/// "spring" version of [AnimatedTo].
-class SpringAnimatedTo extends StatefulWidget {
-  const SpringAnimatedTo({
+class CurveAnimatedTo extends StatefulWidget {
+  const CurveAnimatedTo({
     required this.globalKey,
-    required this.description,
+    this.duration,
+    this.curve,
     this.appearingFrom,
     this.slidingFrom,
     this.enabled = true,
@@ -23,8 +21,11 @@ class SpringAnimatedTo extends StatefulWidget {
   /// [GlobalKey] to keep the widget alive even if its position or depth in the widget tree is changed.
   final GlobalKey globalKey;
 
-  /// [SpringDescription] to animate the child to the new position.
-  final SpringDescription description;
+  /// [Duration] to animate the child to the new position.
+  final Duration? duration;
+
+  /// [Curve] to animate the child to the new position.
+  final Curve? curve;
 
   /// If [appearingFrom] is given, [child] will start animation from [appearingFrom] in the first frame.
   /// This indicates absolute position in the global coordinate system.
@@ -51,16 +52,17 @@ class SpringAnimatedTo extends StatefulWidget {
   final Widget? child;
 
   @override
-  State<SpringAnimatedTo> createState() => _SpringAnimatedToState();
+  State<CurveAnimatedTo> createState() => _CurveAnimatedToState();
 }
 
-class _SpringAnimatedToState extends State<SpringAnimatedTo>
+class _CurveAnimatedToState extends State<CurveAnimatedTo>
     with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return _AnimatedToRenderObjectWidget(
       vsync: this,
-      description: widget.description,
+      duration: widget.duration ?? const Duration(milliseconds: 300),
+      curve: widget.curve ?? Curves.easeInOut,
       appearingFrom: widget.appearingFrom,
       slidingFrom: widget.slidingFrom,
       enabled: widget.enabled,
@@ -72,8 +74,9 @@ class _SpringAnimatedToState extends State<SpringAnimatedTo>
 }
 
 class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
+  final Duration duration;
+  final Curve curve;
   final TickerProvider vsync;
-  final SpringDescription description;
   final Offset? appearingFrom;
   final Offset? slidingFrom;
   final bool enabled;
@@ -83,7 +86,8 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
   const _AnimatedToRenderObjectWidget({
     super.child,
     required this.vsync,
-    this.description = Spring.defaultIOS,
+    this.duration = const Duration(milliseconds: 300),
+    this.curve = Curves.easeInOut,
     this.appearingFrom,
     this.slidingFrom,
     this.enabled = true,
@@ -101,7 +105,8 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
       }
     });
     return _RenderAnimatedTo(
-      description: description,
+      duration: duration,
+      curve: curve,
       vsync: vsync,
       appearingFrom: appearingFrom,
       slidingFrom: slidingFrom,
@@ -114,7 +119,8 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
   void updateRenderObject(
       BuildContext context, _RenderAnimatedTo renderObject) {
     renderObject
-      ..description = description
+      ..duration = duration
+      ..curve = curve
       ..vsync = vsync
       ..appearingFrom = appearingFrom
       ..slidingFrom = slidingFrom
@@ -123,30 +129,34 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
   }
 }
 
-/// [RenderObject] implementation for [SpringAnimatedTo].
+/// [RenderObject] implementation for [CurveAnimatedTo].
 class _RenderAnimatedTo extends RenderProxyBox {
   _RenderAnimatedTo({
-    required SpringDescription description,
+    required Duration duration,
+    required Curve curve,
     required TickerProvider vsync,
     Offset? appearingFrom,
     Offset? slidingFrom,
     required bool enabled,
     void Function(AnimationEndCause cause)? onEnd,
     double? scrollOffset,
-  })  : _vsync = vsync,
+  })  : _duration = duration,
+        _curve = curve,
+        _vsync = vsync,
         _appearingFrom = appearingFrom,
         _slidingFrom = slidingFrom,
         _enabled = enabled,
         _onEnd = onEnd,
-        _scrollOffset = scrollOffset {
-    _controller = SpringSimulationController2D.unbounded(
-      vsync: _vsync,
-      spring: description,
-    )..addListener(markNeedsPaint);
+        _scrollOffset = scrollOffset;
+
+  Duration _duration;
+  set duration(Duration value) {
+    _duration = value;
   }
 
-  set description(SpringDescription value) {
-    _controller.spring = value;
+  Curve _curve;
+  set curve(Curve value) {
+    _curve = value;
   }
 
   TickerProvider _vsync;
@@ -184,10 +194,11 @@ class _RenderAnimatedTo extends RenderProxyBox {
   var _journey = Journey.tighten(Offset.zero);
 
   /// for animation
-  late SpringSimulationController2D _controller;
+  AnimationController? _controller;
+  Animation<Offset>? _animation;
 
-  /// for scroll management
-  OffsetCache _cache = OffsetCache();
+  /// cache of [Offset]s for calculation
+  var _cache = OffsetCache();
 
   /// [offset] is the position where [child] should be painted if no animation is running.
   /// [_RenderAnimatedTo] prevents the [child] from being painted at [offset],
@@ -199,7 +210,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
     // if disabled, just keep the position for the next chance to animate.
     final prioriActions = switch ((_enabled, _journey.isPreparing)) {
       (false, _) => composeDisabled(
-          _controller.isAnimating,
+          _controller?.isAnimating,
           offset,
         ),
       // if either of [_appearingFrom] or [_slidingFrom] is given,
@@ -221,8 +232,9 @@ class _RenderAnimatedTo extends RenderProxyBox {
     }
 
     // Animation is now active, regardless of animating right now or not.
-    final animationActions = composeSpringAnimation(
+    final animationActions = composeAnimation(
       _controller,
+      _animation?.value,
       offset,
       _scrollOffset,
       _journey,
@@ -238,20 +250,41 @@ class _RenderAnimatedTo extends RenderProxyBox {
       switch (action) {
         case JourneyMutation(:final value):
           _journey = value;
-        case AnimationStart(:final journey, :final velocity):
-          // TODO(chooyan-eng): plus 0.1 to from.x for workaround of springster's issue
-          // see: https://github.com/whynotmake-it/rivership/issues/76
-          _controller.animateTo(
-            (journey.to.dx, journey.to.dy),
-            from: (journey.from.dx + 0.1, journey.from.dy + 0.1),
-            withVelocity: velocity,
-          ).then((_) {
+        case AnimationStart(:final journey):
+          _controller = AnimationController(
+            vsync: _vsync,
+            duration: _duration,
+          );
+
+          _controller?.duration = _duration;
+          _controller!.addListener(markNeedsPaint);
+
+          _animation = _controller!
+              .drive(
+                CurveTween(curve: _curve),
+              )
+              .drive(
+                Tween<Offset>(
+                  begin: journey.from,
+                  end: journey.to,
+                ),
+              );
+
+          _controller!.forward().then((_) {
             _applyMutation([AnimationEnd()]);
           });
         case AnimationEnd():
           _onEnd?.call(AnimationEndCause.completed);
+          _controller?.removeListener(markNeedsPaint);
+          _controller?.dispose();
+          _controller = null;
+          _animation = null;
         case AnimationCancel():
           _onEnd?.call(AnimationEndCause.interrupted);
+          _controller?.removeListener(markNeedsPaint);
+          _controller?.dispose();
+          _controller = null;
+          _animation = null;
         case PaintChild(:final offset, :final context):
           assert(context != null, 'context is required');
           context!.paintChild(child!, offset);
@@ -271,11 +304,11 @@ class _RenderAnimatedTo extends RenderProxyBox {
 
   @override
   void dispose() {
-    if (_controller.isAnimating) {
-      _applyMutation([AnimationCancel()]);
+    if (_controller != null) {
+      _applyMutation(
+        [_controller!.isAnimating ? AnimationCancel() : AnimationEnd()],
+      );
     }
-    _controller.removeListener(markNeedsPaint);
-    _controller.dispose();
     super.dispose();
   }
 }

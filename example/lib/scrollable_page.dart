@@ -75,7 +75,7 @@ class _ScrollablePageState extends State<ScrollablePage>
                           left: _isLeft ? 50 : null,
                           right: _isLeft ? null : 50,
                           top: MediaQuery.sizeOf(context).height / 2 - 50,
-                          child: AnimatedTo(
+                          child: AnimatedTo.curve(
                             controller: _scrollController,
                             duration: const Duration(seconds: 1),
                             curve: Curves.easeInOutCubic,

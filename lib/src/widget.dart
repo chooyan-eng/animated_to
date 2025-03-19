@@ -1,24 +1,14 @@
-import 'package:animated_to/src/action.dart';
-import 'package:animated_to/src/action_composer.dart';
-import 'package:animated_to/src/journey.dart';
+import 'package:animated_to/src/curve_widget.dart';
+import 'package:animated_to/src/spring_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-
-/// Cause of animation end.
-enum AnimationEndCause {
-  /// animation is interrupted by another animation
-  interrupted,
-
-  /// widget achieves its goal
-  completed,
-}
+import 'package:springster/springster.dart';
 
 /// [AnimatedTo] is a widget that animates a given [child] when its position changes for any reason.
 /// You don't need to calculate any animation values, as the calculation is always done by [RenderObject].
 ///
 /// Example:
 /// ```dart
-/// final widget = AnimatedTo(
+/// final widget = AnimatedTo.curve(
 ///   globalKey: GlobalObjectKey(item),
 ///   child: Container(
 ///     width: 100,
@@ -37,27 +27,88 @@ enum AnimationEndCause {
 ///
 /// Because [AnimatedTo] need to be kept alive even if its position or depth in the widget tree is changed,
 /// [GlobalKey] must be provided to avoid the Flutter framework from disposing of it.
-class AnimatedTo extends StatefulWidget {
-  const AnimatedTo({
+///
+/// [AnimatedTo] has two types of animation:
+/// - [AnimatedTo.curve] for curve animation.
+/// - [AnimatedTo.spring] for spring animation.
+///
+/// Either way, the usage is the same, just wrapping whatever widget with [AnimatedTo].
+class AnimatedTo extends StatelessWidget {
+  const AnimatedTo._({
     required this.globalKey,
-    this.duration,
     this.curve,
+    this.duration,
     this.appearingFrom,
     this.slidingFrom,
     this.enabled = true,
     this.onEnd,
     this.controller,
+    this.description,
     this.child,
-  }) : super(key: globalKey);
+  });
+
+  /// [AnimatedTo.curve] animates the child with a given [curve] and [duration].
+  factory AnimatedTo.curve({
+    required GlobalKey globalKey,
+    Curve curve = Curves.easeInOut,
+    Duration duration = const Duration(milliseconds: 300),
+    Offset? appearingFrom,
+    Offset? slidingFrom,
+    bool enabled = true,
+    void Function(AnimationEndCause cause)? onEnd,
+    ScrollController? controller,
+    Widget? child,
+  }) {
+    return AnimatedTo._(
+      globalKey: globalKey,
+      curve: curve,
+      duration: duration,
+      appearingFrom: appearingFrom,
+      slidingFrom: slidingFrom,
+      enabled: enabled,
+      onEnd: onEnd,
+      controller: controller,
+      child: child,
+    );
+  }
+
+  /// [AnimatedTo.spring] animates the child with a given [SpringDescription].
+  factory AnimatedTo.spring({
+    required GlobalKey globalKey,
+    SpringDescription? description,
+    Offset? appearingFrom,
+    Offset? slidingFrom,
+    bool enabled = true,
+    void Function(AnimationEndCause cause)? onEnd,
+    ScrollController? controller,
+    Widget? child,
+  }) {
+    return AnimatedTo._(
+      globalKey: globalKey,
+      description: description,
+      appearingFrom: appearingFrom,
+      slidingFrom: slidingFrom,
+      enabled: enabled,
+      onEnd: onEnd,
+      controller: controller,
+      child: child,
+    );
+  }
 
   /// [GlobalKey] to keep the widget alive even if its position or depth in the widget tree is changed.
   final GlobalKey globalKey;
 
+  /// [AnimatedTo.curve] only.
   /// [Duration] to animate the child to the new position.
   final Duration? duration;
 
+  /// [AnimatedTo.curve] only.
   /// [Curve] to animate the child to the new position.
   final Curve? curve;
+
+  /// [AnimatedTo.spring] only.
+  /// [SpringDescription] to animate the child to the new position.
+  final SpringDescription? description;
 
   /// If [appearingFrom] is given, [child] will start animation from [appearingFrom] in the first frame.
   /// This indicates absolute position in the global coordinate system.
@@ -83,286 +134,38 @@ class AnimatedTo extends StatefulWidget {
   /// [child] to animate.
   final Widget? child;
 
+  bool get isCurve => curve != null;
+
   @override
-  State<AnimatedTo> createState() => _AnimatedToState();
+  Widget build(BuildContext context) => isCurve
+      ? CurveAnimatedTo(
+          globalKey: globalKey,
+          curve: curve!,
+          duration: duration,
+          appearingFrom: appearingFrom,
+          slidingFrom: slidingFrom,
+          enabled: enabled,
+          onEnd: onEnd,
+          controller: controller,
+          child: child,
+        )
+      : SpringAnimatedTo(
+          globalKey: globalKey,
+          description: description ?? Spring.defaultIOS,
+          appearingFrom: appearingFrom,
+          slidingFrom: slidingFrom,
+          enabled: enabled,
+          onEnd: onEnd,
+          controller: controller,
+          child: child,
+        );
 }
 
-class _AnimatedToState extends State<AnimatedTo> with TickerProviderStateMixin {
-  @override
-  Widget build(BuildContext context) {
-    return _AnimatedToRenderObjectWidget(
-      vsync: this,
-      duration: widget.duration ?? const Duration(milliseconds: 300),
-      curve: widget.curve ?? Curves.easeInOut,
-      appearingFrom: widget.appearingFrom,
-      slidingFrom: widget.slidingFrom,
-      enabled: widget.enabled,
-      onEnd: widget.onEnd,
-      controller: widget.controller,
-      child: widget.child,
-    );
-  }
-}
+/// Cause of animation end.
+enum AnimationEndCause {
+  /// animation is interrupted by another animation
+  interrupted,
 
-class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
-  final Duration duration;
-  final Curve curve;
-  final TickerProvider vsync;
-  final Offset? appearingFrom;
-  final Offset? slidingFrom;
-  final bool enabled;
-  final void Function(AnimationEndCause cause)? onEnd;
-  final ScrollController? controller;
-
-  const _AnimatedToRenderObjectWidget({
-    super.child,
-    required this.vsync,
-    this.duration = const Duration(milliseconds: 300),
-    this.curve = Curves.easeInOut,
-    this.appearingFrom,
-    this.slidingFrom,
-    this.enabled = true,
-    this.onEnd,
-    this.controller,
-  });
-
-  @override
-  RenderObject createRenderObject(BuildContext context) {
-    // listen to scroll offset and update [_scrollOffset] of [_RenderAnimatedTo] when it changes.
-    controller?.addListener(() {
-      final renderObject = context.findRenderObject();
-      if (renderObject is _RenderAnimatedTo) {
-        renderObject.scrollOffset = controller!.offset;
-      }
-    });
-    return _RenderAnimatedTo(
-      duration: duration,
-      curve: curve,
-      vsync: vsync,
-      appearingFrom: appearingFrom,
-      slidingFrom: slidingFrom,
-      enabled: enabled,
-      onEnd: onEnd,
-    );
-  }
-
-  @override
-  void updateRenderObject(
-      BuildContext context, _RenderAnimatedTo renderObject) {
-    renderObject
-      ..duration = duration
-      ..curve = curve
-      ..vsync = vsync
-      ..appearingFrom = appearingFrom
-      ..slidingFrom = slidingFrom
-      ..enabled = enabled
-      ..onEnd = onEnd;
-  }
-}
-
-/// [RenderObject] implementation for [AnimatedTo].
-class _RenderAnimatedTo extends RenderProxyBox {
-  _RenderAnimatedTo({
-    required Duration duration,
-    required Curve curve,
-    required TickerProvider vsync,
-    Offset? appearingFrom,
-    Offset? slidingFrom,
-    required bool enabled,
-    void Function(AnimationEndCause cause)? onEnd,
-    double? scrollOffset,
-  })  : _duration = duration,
-        _curve = curve,
-        _vsync = vsync,
-        _appearingFrom = appearingFrom,
-        _slidingFrom = slidingFrom,
-        _enabled = enabled,
-        _onEnd = onEnd,
-        _scrollOffset = scrollOffset;
-
-  Duration _duration;
-  set duration(Duration value) {
-    _duration = value;
-  }
-
-  Curve _curve;
-  set curve(Curve value) {
-    _curve = value;
-  }
-
-  TickerProvider _vsync;
-  set vsync(TickerProvider value) {
-    _vsync = value;
-  }
-
-  Offset? _appearingFrom;
-  set appearingFrom(Offset? value) {
-    _appearingFrom = value;
-  }
-
-  Offset? _slidingFrom;
-  set slidingFrom(Offset? value) {
-    _slidingFrom = value;
-  }
-
-  bool _enabled = true;
-  set enabled(bool value) {
-    _enabled = value;
-  }
-
-  void Function(AnimationEndCause cause)? _onEnd;
-  set onEnd(void Function(AnimationEndCause cause)? value) {
-    _onEnd = value;
-  }
-
-  /// This field is always updated by [controller]'s callback.
-  double? _scrollOffset;
-  set scrollOffset(double? value) {
-    _scrollOffset = value;
-  }
-
-  /// current journey
-  var _journey = Journey.tighten(Offset.zero);
-
-  /// for animation
-  AnimationController? _controller;
-  Animation<Offset>? _animation;
-
-  var _cache = PositionCache();
-
-  /// [offset] is the position where [child] should be painted if no animation is running.
-  /// [_RenderAnimatedTo] prevents the [child] from being painted at [offset],
-  /// and paints at animating position instead by calling [context.paintChild].
-  ///
-  /// note that [offset] also changes when scrolling on [SingleChildScrollView].
-  @override
-  void paint(PaintingContext context, Offset offset) {
-    // if disabled, just keep the position for the next chance to animate.
-    final List<MutationAction> prioriActions = switch ((_enabled)) {
-      (false) => composeDisabled(_controller, offset, context),
-      // if either of [_appearingFrom] or [_slidingFrom] is given,
-      // animation should be start from that position in the first frame.
-      (true) => [
-          if (_journey.isPreparing)
-            ...composeFirstFrame(
-              _appearingFrom,
-              _slidingFrom,
-              offset,
-              _scrollOffset ?? 0.0,
-              context,
-            ),
-        ],
-    };
-
-    // apply mutation and return if there are any actions to apply,
-    // which means it's disabled or first frame.
-    if (prioriActions.isNotEmpty) {
-      _applyMutation(prioriActions);
-      return;
-    }
-
-    // Animation is now active, regardless of animating right now or not.
-    final animationActions = composeAnimation(
-      _controller,
-      _animation,
-      _cache,
-      offset,
-      _journey,
-      _scrollOffset,
-      context,
-    );
-
-    _applyMutation(animationActions);
-  }
-
-  /// only method to apply mutation
-  void _applyMutation(List<MutationAction> actions) {
-    for (final action in actions) {
-      switch (action) {
-        case JourneyMutation(:final value):
-          _journey = value;
-        case AnimationStart(:final journey):
-          _controller = AnimationController(
-            vsync: _vsync,
-            duration: _duration,
-          );
-
-          _controller?.duration = _duration;
-          _controller!.addListener(markNeedsPaint);
-
-          _animation = _controller!
-              .drive(
-                CurveTween(curve: _curve),
-              )
-              .drive(
-                Tween<Offset>(
-                  begin: journey.from,
-                  end: journey.to,
-                ),
-              );
-
-          _controller!.forward().then((_) {
-            _applyMutation([AnimationEnd()]);
-          });
-        case AnimationEnd():
-          _onEnd?.call(AnimationEndCause.completed);
-          _controller?.removeListener(markNeedsPaint);
-          _controller?.dispose();
-          _controller = null;
-          _animation = null;
-        case AnimationCancel():
-          _onEnd?.call(AnimationEndCause.interrupted);
-          _controller?.removeListener(markNeedsPaint);
-          _controller?.dispose();
-          _controller = null;
-          _animation = null;
-        case PaintChild(:final offset, :final context):
-          context.paintChild(child!, offset);
-        case PositionCacheMutation(
-            :final scrollOffset,
-            :final scrollOffsetWhenAnimationStarted,
-            :final lastOffset
-          ):
-          _cache = _cache.copyWith(
-            scrollOffsetCache: scrollOffset,
-            scrollOffsetWhenAnimationStarted: scrollOffsetWhenAnimationStarted,
-            lastOffset: lastOffset,
-          );
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    if (_controller != null) {
-      _applyMutation(
-        [_controller!.isAnimating ? AnimationCancel() : AnimationEnd()],
-      );
-    }
-    super.dispose();
-  }
-}
-
-class PositionCache {
-  PositionCache({
-    this.scrollOffsetCache,
-    this.scrollOffsetWhenAnimationStarted,
-    this.lastOffset,
-  });
-
-  final double? scrollOffsetCache;
-  final double? scrollOffsetWhenAnimationStarted;
-  final Offset? lastOffset;
-
-  PositionCache copyWith({
-    double? scrollOffsetCache,
-    double? scrollOffsetWhenAnimationStarted,
-    Offset? lastOffset,
-  }) =>
-      PositionCache(
-        scrollOffsetCache: scrollOffsetCache ?? this.scrollOffsetCache,
-        scrollOffsetWhenAnimationStarted: scrollOffsetWhenAnimationStarted ??
-            this.scrollOffsetWhenAnimationStarted,
-        lastOffset: lastOffset ?? this.lastOffset,
-      );
+  /// widget achieves its goal
+  completed,
 }

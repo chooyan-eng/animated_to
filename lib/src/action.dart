@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:animated_to/src/journey.dart';
 import 'package:flutter/rendering.dart';
 
@@ -19,8 +17,9 @@ sealed class AnimationMutation extends MutationAction {}
 
 final class AnimationStart extends AnimationMutation {
   final Journey journey;
+  final (double, double)? velocity;
 
-  AnimationStart(this.journey);
+  AnimationStart(this.journey, this.velocity);
 }
 
 final class AnimationEnd extends AnimationMutation {}
@@ -29,19 +28,22 @@ final class AnimationCancel extends AnimationMutation {}
 
 final class PaintChild extends AnimationMutation {
   final Offset offset;
-  final PaintingContext context;
+  final PaintingContext? context;
+
+  factory PaintChild.requireContext(Offset offset) => PaintChild(offset, null);
+  PaintChild provide(PaintingContext context) => PaintChild(offset, context);
 
   PaintChild(this.offset, this.context);
 }
 
-class PositionCacheMutation extends MutationAction {
-  final double? scrollOffset;
-  final double? scrollOffsetWhenAnimationStarted;
-  final Offset? lastOffset;
+class OffsetCacheMutation extends MutationAction {
+  final double? scroll;
+  final double? scrollOriginal;
+  final Offset? last;
 
-  PositionCacheMutation({
-    this.scrollOffset,
-    this.scrollOffsetWhenAnimationStarted,
-    this.lastOffset,
+  OffsetCacheMutation({
+    this.scroll,
+    this.scrollOriginal,
+    this.last,
   });
 }

@@ -1,3 +1,8 @@
+## [0.3.0] - 2025.3.19
+- `AnimatedTo()` is now separated into `AnimatedTo.curve()` and `AnimatedTo.spring()`
+- some refactoring with experimental idea to make the logic testable
+- added dependency to [springster](https://pub.dev/packages/springster) package.
+
 ## [0.2.0] - 2024.12.27
 - remove unnecessary `vsync` argument
 - rename `key` to `globalKey` and make it `required`
