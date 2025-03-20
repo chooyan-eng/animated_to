@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:animated_to/animated_to.dart';
+import 'package:example/draggable_page.dart';
 import 'package:example/graph_page.dart';
 import 'package:example/listview_page.dart';
 import 'package:example/scrollable_page.dart';
@@ -81,6 +82,17 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => const GraphPage(),
+                    ),
+                  );
+                },
+              ),
+              _DrawerMenuItem(
+                title: 'Throwing ball',
+                vsync: this,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const DraggablePage(),
                     ),
                   );
                 },

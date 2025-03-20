@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:animated_to/animated_to.dart';
+import 'package:example/draggable_page.dart';
+import 'package:example/grid_painter.dart';
 import 'package:flutter/material.dart';
 
 /// A page that demonstrates the `AnimatedTo` package with a live graph simulation.
@@ -263,34 +265,6 @@ class _StatItem extends StatelessWidget {
       ],
     );
   }
-}
-
-class GridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.blue[900]!.withAlpha(128)
-      ..strokeWidth = 1;
-
-    const spacing = 30;
-    for (var i = 0; i < size.width; i += spacing) {
-      canvas.drawLine(
-        Offset(i.toDouble(), 0),
-        Offset(i.toDouble(), size.height),
-        paint,
-      );
-    }
-    for (var i = 0; i < size.height; i += spacing) {
-      canvas.drawLine(
-        Offset(0, i.toDouble()),
-        Offset(size.width, i.toDouble()),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _Item {

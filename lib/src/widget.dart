@@ -44,6 +44,7 @@ class AnimatedTo extends StatelessWidget {
     this.onEnd,
     this.controller,
     this.description,
+    this.velocityBuilder,
     this.child,
   });
 
@@ -76,6 +77,7 @@ class AnimatedTo extends StatelessWidget {
   factory AnimatedTo.spring({
     required GlobalKey globalKey,
     SpringDescription? description,
+    Offset Function()? velocityBuilder,
     Offset? appearingFrom,
     Offset? slidingFrom,
     bool enabled = true,
@@ -86,6 +88,7 @@ class AnimatedTo extends StatelessWidget {
     return AnimatedTo._(
       globalKey: globalKey,
       description: description,
+      velocityBuilder: velocityBuilder,
       appearingFrom: appearingFrom,
       slidingFrom: slidingFrom,
       enabled: enabled,
@@ -109,6 +112,11 @@ class AnimatedTo extends StatelessWidget {
   /// [AnimatedTo.spring] only.
   /// [SpringDescription] to animate the child to the new position.
   final SpringDescription? description;
+
+  /// [AnimatedTo.spring] only.
+  /// A function that provides [Offset] of velocity to animate the child to the new position.
+  /// This function is called every time [AnimatedTo] decides to start spring animation without previous animation's velocity.
+  final Offset Function()? velocityBuilder;
 
   /// If [appearingFrom] is given, [child] will start animation from [appearingFrom] in the first frame.
   /// This indicates absolute position in the global coordinate system.
@@ -152,6 +160,7 @@ class AnimatedTo extends StatelessWidget {
       : SpringAnimatedTo(
           globalKey: globalKey,
           description: description ?? Spring.defaultIOS,
+          velocityBuilder: velocityBuilder,
           appearingFrom: appearingFrom,
           slidingFrom: slidingFrom,
           enabled: enabled,
