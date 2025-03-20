@@ -14,7 +14,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   animated_to:
     path: ../
-  springster: ^0.4.0
+  springster: ^0.4.0+1
 
 dev_dependencies:
   flutter_test:

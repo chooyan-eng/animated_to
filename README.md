@@ -75,6 +75,7 @@ As `springster` is also used inside `animated_to` package(thanks @timcreatedit!)
 | duration | Duration | (curve only) The duration of the animation. |
 | curve | Curve | (curve only) The curve of the animation. |
 | description | SpringDescription | (spring only) The configuration of the spring simulation. |
+| velocityBuilder | Offset Function()? | (spring only) A function to provide initial velocity to start spring animation. |
 | controller | AnimationController? | Required if `AnimatedTo` is on the subtree of `SingleChildScrollView`. Share the controller with the `SingleChildScrollView` to properly animate the widget. |
 | appearingFrom` | Offset? | The start position of the animation in the first frame. This offset is an absolute position in the global coordinate system. |
 | slidingFrom | Offset? | The start position of the animation in the first frame. This offset is a relative position to the child's intrinsic position. |

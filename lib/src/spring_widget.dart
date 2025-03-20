@@ -256,11 +256,9 @@ class _RenderAnimatedTo extends RenderProxyBox {
         case JourneyMutation(:final value):
           _journey = value;
         case AnimationStart(:final journey, :final velocity):
-          // TODO(chooyan-eng): plus 0.1 to from.x for workaround of springster's issue
-          // see: https://github.com/whynotmake-it/rivership/issues/76
           _controller.animateTo(
             (journey.to.dx, journey.to.dy),
-            from: (journey.from.dx + 0.1, journey.from.dy + 0.1),
+            from: (journey.from.dx, journey.from.dy),
             withVelocity: velocity ??
                 _velocityBuilder?.call().let((it) => (it.dx, it.dy)),
           ).then((_) {

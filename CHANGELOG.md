@@ -1,3 +1,6 @@
+## [0.3.1] - 2025.3.20
+- add `velocityBuilder` argument to `AnimatedTo.spring()`
+
 ## [0.3.0] - 2025.3.19
 - `AnimatedTo()` is now separated into `AnimatedTo.curve()` and `AnimatedTo.spring()`
 - some refactoring with experimental idea to make the logic testable
