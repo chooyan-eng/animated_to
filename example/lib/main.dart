@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:animated_to/animated_to.dart';
+import 'package:example/graph_page.dart';
 import 'package:example/listview_page.dart';
 import 'package:example/scrollable_page.dart';
 import 'package:example/simple_demo_page.dart';
@@ -69,6 +70,17 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => const SpringPage(),
+                    ),
+                  );
+                },
+              ),
+              _DrawerMenuItem(
+                title: 'Graph Demo',
+                vsync: this,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const GraphPage(),
                     ),
                   );
                 },
