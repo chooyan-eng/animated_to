@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:animated_to/animated_to.dart';
-import 'package:example/draggable_page.dart';
 import 'package:example/grid_painter.dart';
 import 'package:flutter/material.dart';
 
