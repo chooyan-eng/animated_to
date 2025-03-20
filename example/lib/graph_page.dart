@@ -5,7 +5,7 @@ import 'package:animated_to/animated_to.dart';
 import 'package:flutter/material.dart';
 
 /// A page that demonstrates the `AnimatedTo` package with a live graph simulation.
-/// To see the usage of `AnimatedTo`, jump to line 128.
+/// To see the usage of `AnimatedTo`, jump to line 130.
 class GraphPage extends StatefulWidget {
   const GraphPage({super.key});
 
