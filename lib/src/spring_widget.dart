@@ -3,6 +3,7 @@ import 'package:animated_to/src/action.dart';
 import 'package:animated_to/src/action_composer.dart';
 import 'package:animated_to/src/helper.dart';
 import 'package:animated_to/src/journey.dart';
+import 'package:animated_to/src/let.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:springster/springster.dart';
@@ -12,6 +13,7 @@ class SpringAnimatedTo extends StatefulWidget {
   const SpringAnimatedTo({
     required this.globalKey,
     required this.description,
+    this.velocityBuilder,
     this.appearingFrom,
     this.slidingFrom,
     this.enabled = true,
@@ -25,6 +27,10 @@ class SpringAnimatedTo extends StatefulWidget {
 
   /// [SpringDescription] to animate the child to the new position.
   final SpringDescription description;
+
+  /// A function that provides [Offset] of velocity to animate the child to the new position.
+  /// This function is called every time [SpringAnimatedTo] decides to start animation without previous animation's velocity.
+  final Offset Function()? velocityBuilder;
 
   /// If [appearingFrom] is given, [child] will start animation from [appearingFrom] in the first frame.
   /// This indicates absolute position in the global coordinate system.
@@ -67,6 +73,7 @@ class _SpringAnimatedToState extends State<SpringAnimatedTo>
       onEnd: widget.onEnd,
       controller: widget.controller,
       child: widget.child,
+      velocityBuilder: widget.velocityBuilder,
     );
   }
 }
@@ -79,7 +86,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
   final bool enabled;
   final void Function(AnimationEndCause cause)? onEnd;
   final ScrollController? controller;
-
+  final Offset Function()? velocityBuilder;
   const _AnimatedToRenderObjectWidget({
     super.child,
     required this.vsync,
@@ -89,6 +96,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
     this.enabled = true,
     this.onEnd,
     this.controller,
+    this.velocityBuilder,
   });
 
   @override
@@ -107,6 +115,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
       slidingFrom: slidingFrom,
       enabled: enabled,
       onEnd: onEnd,
+      velocityBuilder: velocityBuilder,
     );
   }
 
@@ -119,7 +128,8 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
       ..appearingFrom = appearingFrom
       ..slidingFrom = slidingFrom
       ..enabled = enabled
-      ..onEnd = onEnd;
+      ..onEnd = onEnd
+      ..velocityBuilder = velocityBuilder;
   }
 }
 
@@ -132,12 +142,14 @@ class _RenderAnimatedTo extends RenderProxyBox {
     Offset? slidingFrom,
     required bool enabled,
     void Function(AnimationEndCause cause)? onEnd,
+    Offset Function()? velocityBuilder,
     double? scrollOffset,
   })  : _vsync = vsync,
         _appearingFrom = appearingFrom,
         _slidingFrom = slidingFrom,
         _enabled = enabled,
         _onEnd = onEnd,
+        _velocityBuilder = velocityBuilder,
         _scrollOffset = scrollOffset {
     _controller = SpringSimulationController2D.unbounded(
       vsync: _vsync,
@@ -178,6 +190,11 @@ class _RenderAnimatedTo extends RenderProxyBox {
   double? _scrollOffset;
   set scrollOffset(double? value) {
     _scrollOffset = value;
+  }
+
+  Offset Function()? _velocityBuilder;
+  set velocityBuilder(Offset Function()? value) {
+    _velocityBuilder = value;
   }
 
   /// current journey
@@ -244,7 +261,8 @@ class _RenderAnimatedTo extends RenderProxyBox {
           _controller.animateTo(
             (journey.to.dx, journey.to.dy),
             from: (journey.from.dx + 0.1, journey.from.dy + 0.1),
-            withVelocity: velocity,
+            withVelocity: velocity ??
+                _velocityBuilder?.call().let((it) => (it.dx, it.dy)),
           ).then((_) {
             _applyMutation([AnimationEnd()]);
           });
