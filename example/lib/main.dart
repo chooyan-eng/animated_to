@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:animated_to/animated_to.dart';
 import 'package:example/draggable_page.dart';
 import 'package:example/graph_page.dart';
-import 'package:example/listview_page.dart';
+import 'package:example/list_switch_page.dart';
 import 'package:example/scrollable_page.dart';
 import 'package:example/simple_demo_page.dart';
 import 'package:example/spring_page.dart';
@@ -98,6 +98,17 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
                 },
               ),
               _DrawerMenuItem(
+                title: 'List Switch Demo',
+                vsync: this,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const ListSwitchPage(),
+                    ),
+                  );
+                },
+              ),
+              _DrawerMenuItem(
                 title: 'TODO cards',
                 vsync: this,
                 onTap: () {
@@ -147,7 +158,7 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) => const ListPage(),
+                      builder: (context) => const ListSwitchPage(),
                     ),
                   );
                 },

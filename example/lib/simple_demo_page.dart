@@ -1,6 +1,5 @@
 import 'package:animated_to/animated_to.dart';
 import 'package:flutter/material.dart';
-import 'package:springster/springster.dart';
 
 class SimpleDemoPage extends StatefulWidget {
   const SimpleDemoPage({super.key});
@@ -27,76 +26,73 @@ class _SimpleDemoPageState extends State<SimpleDemoPage>
         ),
       ),
       backgroundColor: Colors.grey[900],
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            height: 400,
-            child: Stack(
-              children: List.generate(5, (index) {
-                return Positioned(
-                  left: _isLeft ? 50 : null,
-                  right: _isLeft ? null : 50,
-                  top: index * (50 + 8.0),
-                  child: AnimatedTo.spring(
-                    globalKey: _keys[index],
-                    description: Spring.bouncy.copyWith(
-                      durationSeconds:
-                          Spring.defaultIOS.durationSeconds + (0.1 * index),
-                    ),
-                    child: AnimatedContainer(
-                      duration: Duration(milliseconds: 500 + (index * 100)),
-                      curve: Curves.easeInOut,
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: _isLeft
-                            ? Colors.grey[100]
-                            : Colors.blue[(index + 1) * 100],
-                        borderRadius: _isLeft
-                            ? BorderRadius.circular(8)
-                            : BorderRadius.circular(100),
-                      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          spacing: 20,
+          children: [
+            const Spacer(),
+            ...List.generate(
+              3,
+              (index) => Align(
+                alignment:
+                    _isLeft ? Alignment.centerLeft : Alignment.centerRight,
+                child: AnimatedTo.spring(
+                  globalKey: _keys[index],
+                  sizeWidget: SizedBox(
+                    width: _isLeft ? 100 : 40,
+                    height: _isLeft ? 100 : 40,
+                  ),
+                  child: AnimatedContainer(
+                    duration: Duration(milliseconds: 500),
+                    width: _isLeft ? 100 : 40,
+                    height: _isLeft ? 100 : 40,
+                    decoration: BoxDecoration(
+                      color: _isLeft ? Colors.white : Colors.blue,
+                      shape: BoxShape.circle,
                     ),
                   ),
-                );
-              }),
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[800],
-                  foregroundColor: Colors.white,
+            const SizedBox(height: 20),
+            const Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[800],
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isLeft = !_isLeft;
+                    });
+                  },
+                  icon: const Icon(Icons.arrow_left),
+                  label: const Text('Left'),
                 ),
-                onPressed: () {
-                  setState(() {
-                    _isLeft = !_isLeft;
-                  });
-                },
-                icon: const Icon(Icons.arrow_left),
-                label: const Text('Left'),
-              ),
-              const SizedBox(width: 20),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[800],
-                  foregroundColor: Colors.white,
+                const SizedBox(width: 20),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[800],
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isLeft = !_isLeft;
+                    });
+                  },
+                  icon: const Icon(Icons.arrow_right),
+                  label: const Text('Right'),
                 ),
-                onPressed: () {
-                  setState(() {
-                    _isLeft = !_isLeft;
-                  });
-                },
-                icon: const Icon(Icons.arrow_right),
-                label: const Text('Right'),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 60),
+          ],
+        ),
       ),
     );
   }
