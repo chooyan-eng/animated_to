@@ -4,6 +4,7 @@ import 'package:animated_to/src/action_composer.dart';
 import 'package:animated_to/src/helper.dart';
 import 'package:animated_to/src/journey.dart';
 import 'package:animated_to/src/let.dart';
+import 'package:animated_to/src/size_maintainer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:springster/springster.dart';
@@ -20,6 +21,7 @@ class SpringAnimatedTo extends StatefulWidget {
     this.onEnd,
     this.controller,
     this.child,
+    this.sizeWidget,
   }) : super(key: globalKey);
 
   /// [GlobalKey] to keep the widget alive even if its position or depth in the widget tree is changed.
@@ -56,6 +58,9 @@ class SpringAnimatedTo extends StatefulWidget {
   /// [child] to animate.
   final Widget? child;
 
+  /// [sizeWidget] to maintain the size of the child, regardless of transformation animations.
+  final Widget? sizeWidget;
+
   @override
   State<SpringAnimatedTo> createState() => _SpringAnimatedToState();
 }
@@ -72,8 +77,13 @@ class _SpringAnimatedToState extends State<SpringAnimatedTo>
       enabled: widget.enabled,
       onEnd: widget.onEnd,
       controller: widget.controller,
-      child: widget.child,
       velocityBuilder: widget.velocityBuilder,
+      child: widget.sizeWidget == null
+          ? widget.child
+          : SizeMaintainer(
+              sizeWidget: widget.sizeWidget!,
+              child: widget.child!,
+            ),
     );
   }
 }

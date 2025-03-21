@@ -46,6 +46,7 @@ class AnimatedTo extends StatelessWidget {
     this.description,
     this.velocityBuilder,
     this.child,
+    this.sizeWidget,
   });
 
   /// [AnimatedTo.curve] animates the child with a given [curve] and [duration].
@@ -59,6 +60,7 @@ class AnimatedTo extends StatelessWidget {
     void Function(AnimationEndCause cause)? onEnd,
     ScrollController? controller,
     Widget? child,
+    Widget? sizeWidget,
   }) {
     return AnimatedTo._(
       globalKey: globalKey,
@@ -69,6 +71,7 @@ class AnimatedTo extends StatelessWidget {
       enabled: enabled,
       onEnd: onEnd,
       controller: controller,
+      sizeWidget: sizeWidget,
       child: child,
     );
   }
@@ -84,6 +87,7 @@ class AnimatedTo extends StatelessWidget {
     void Function(AnimationEndCause cause)? onEnd,
     ScrollController? controller,
     Widget? child,
+    Widget? sizeWidget,
   }) {
     return AnimatedTo._(
       globalKey: globalKey,
@@ -94,6 +98,7 @@ class AnimatedTo extends StatelessWidget {
       enabled: enabled,
       onEnd: onEnd,
       controller: controller,
+      sizeWidget: sizeWidget,
       child: child,
     );
   }
@@ -142,6 +147,17 @@ class AnimatedTo extends StatelessWidget {
   /// [child] to animate.
   final Widget? child;
 
+  /// [sizeWidget] to maintain the size of the child, regardless of transformation animations.
+  ///
+  /// Because [AnimatedTo] starts animation at every time when [child] updates its position,
+  /// which means if the [child] updates its size with animation, [AnimatedTo] tries to start
+  /// its own animation at every frame resulting in [child] doesn't animate as expected.
+  ///
+  /// [sizeWidget] is used to calculate the size and the position *after* animation so that
+  /// [AnimatedTo] recognize the desired destination and prevent from unnecessary animation running.
+  /// Thus, [sizeWidget] has to be independent from transition animation.
+  final Widget? sizeWidget;
+
   bool get isCurve => curve != null;
 
   @override
@@ -155,6 +171,7 @@ class AnimatedTo extends StatelessWidget {
           enabled: enabled,
           onEnd: onEnd,
           controller: controller,
+          sizeWidget: sizeWidget,
           child: child,
         )
       : SpringAnimatedTo(
@@ -166,6 +183,7 @@ class AnimatedTo extends StatelessWidget {
           enabled: enabled,
           onEnd: onEnd,
           controller: controller,
+          sizeWidget: sizeWidget,
           child: child,
         );
 }
