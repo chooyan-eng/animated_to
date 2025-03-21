@@ -1,3 +1,6 @@
+## [0.3.2] - 2025.3.21
+- add `sizeWidget` argument that enables us to collaborate with size animation
+
 ## [0.3.1] - 2025.3.20
 - add `velocityBuilder` argument to `AnimatedTo.spring()`
 

@@ -51,6 +51,8 @@ https://pub.dev/packages/springster
 
 As `springster` is also used inside `animated_to` package(thanks @timcreatedit!), make sure you may have potential risk of dependency conflicts when directly depending on the package on your app side.
 
+![spring demo](https://github.com/chooyan-eng/animated_to/raw/main/assets/animated_to_4.gif)
+
 ## Some more features
 
 `appearingFrom` lets you specify the start position of the animation in the first frame. By providing an absolute position in the global coordinate system, the widget will appear there and then animate to the original position.
@@ -81,6 +83,7 @@ As `springster` is also used inside `animated_to` package(thanks @timcreatedit!)
 | slidingFrom | Offset? | The start position of the animation in the first frame. This offset is a relative position to the child's intrinsic position. |
 | enabled | bool | Whether the animation is enabled. |
 | onEnd | void Function(AnimationEndCause cause)? | The callback when the animation is completed. `cause` shows the reason why the animation is completed. |
+| sizeWidget | Widget | A widget for calculating desired size and position regardless of animations. |
 
 See [example](example) for more details.
 
