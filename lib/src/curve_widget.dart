@@ -2,6 +2,7 @@ import 'package:animated_to/src/action.dart';
 import 'package:animated_to/src/action_composer.dart';
 import 'package:animated_to/src/helper.dart';
 import 'package:animated_to/src/journey.dart';
+import 'package:animated_to/src/size_maintainer.dart';
 import 'package:animated_to/src/widget.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
@@ -17,6 +18,7 @@ class CurveAnimatedTo extends StatefulWidget {
     this.onEnd,
     this.controller,
     this.child,
+    this.sizeWidget,
   }) : super(key: globalKey);
 
   /// [GlobalKey] to keep the widget alive even if its position or depth in the widget tree is changed.
@@ -52,6 +54,9 @@ class CurveAnimatedTo extends StatefulWidget {
   /// [child] to animate.
   final Widget? child;
 
+  /// [sizeWidget] to maintain the size of the child, regardless of transformation animations.
+  final Widget? sizeWidget;
+
   @override
   State<CurveAnimatedTo> createState() => _CurveAnimatedToState();
 }
@@ -59,19 +64,22 @@ class CurveAnimatedTo extends StatefulWidget {
 class _CurveAnimatedToState extends State<CurveAnimatedTo>
     with TickerProviderStateMixin {
   @override
-  Widget build(BuildContext context) {
-    return _AnimatedToRenderObjectWidget(
-      vsync: this,
-      duration: widget.duration ?? const Duration(milliseconds: 300),
-      curve: widget.curve ?? Curves.easeInOut,
-      appearingFrom: widget.appearingFrom,
-      slidingFrom: widget.slidingFrom,
-      enabled: widget.enabled,
-      onEnd: widget.onEnd,
-      controller: widget.controller,
-      child: widget.child,
-    );
-  }
+  Widget build(BuildContext context) => _AnimatedToRenderObjectWidget(
+        vsync: this,
+        duration: widget.duration ?? const Duration(milliseconds: 300),
+        curve: widget.curve ?? Curves.easeInOut,
+        appearingFrom: widget.appearingFrom,
+        slidingFrom: widget.slidingFrom,
+        enabled: widget.enabled,
+        onEnd: widget.onEnd,
+        controller: widget.controller,
+        child: widget.sizeWidget == null
+            ? widget.child
+            : SizeMaintainer(
+                sizeWidget: widget.sizeWidget!,
+                child: widget.child!,
+              ),
+      );
 }
 
 class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
