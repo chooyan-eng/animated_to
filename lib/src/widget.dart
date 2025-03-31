@@ -1,7 +1,10 @@
+import 'package:animated_to/src/burst_widget.dart';
 import 'package:animated_to/src/curve_widget.dart';
 import 'package:animated_to/src/spring_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:springster/springster.dart';
+
+enum _AnimationType { curve, spring, burst }
 
 /// [AnimatedTo] is a widget that animates a given [child] when its position changes for any reason.
 /// You don't need to calculate any animation values, as the calculation is always done by [RenderObject].
@@ -91,10 +94,29 @@ class AnimatedTo extends StatelessWidget {
   }) {
     return AnimatedTo._(
       globalKey: globalKey,
-      description: description,
+      description: description ?? Spring.defaultIOS,
       velocityBuilder: velocityBuilder,
       appearingFrom: appearingFrom,
       slidingFrom: slidingFrom,
+      enabled: enabled,
+      onEnd: onEnd,
+      controller: controller,
+      sizeWidget: sizeWidget,
+      child: child,
+    );
+  }
+
+  /// [AnimatedTo.burst] bursts the child when its position changes.
+  factory AnimatedTo.burst({
+    required GlobalKey globalKey,
+    bool enabled = true,
+    void Function(AnimationEndCause cause)? onEnd,
+    ScrollController? controller,
+    Widget? child,
+    Widget? sizeWidget,
+  }) {
+    return AnimatedTo._(
+      globalKey: globalKey,
       enabled: enabled,
       onEnd: onEnd,
       controller: controller,
@@ -174,18 +196,27 @@ class AnimatedTo extends StatelessWidget {
           sizeWidget: sizeWidget,
           child: child,
         )
-      : SpringAnimatedTo(
-          globalKey: globalKey,
-          description: description ?? Spring.defaultIOS,
-          velocityBuilder: velocityBuilder,
-          appearingFrom: appearingFrom,
-          slidingFrom: slidingFrom,
-          enabled: enabled,
-          onEnd: onEnd,
-          controller: controller,
-          sizeWidget: sizeWidget,
-          child: child,
-        );
+      : description == null
+          ? BurstAnimatedTo(
+              globalKey: globalKey,
+              enabled: enabled,
+              onEnd: onEnd,
+              controller: controller,
+              sizeWidget: sizeWidget,
+              child: child,
+            )
+          : SpringAnimatedTo(
+              globalKey: globalKey,
+              description: description!,
+              velocityBuilder: velocityBuilder,
+              appearingFrom: appearingFrom,
+              slidingFrom: slidingFrom,
+              enabled: enabled,
+              onEnd: onEnd,
+              controller: controller,
+              sizeWidget: sizeWidget,
+              child: child,
+            );
 }
 
 /// Cause of animation end.

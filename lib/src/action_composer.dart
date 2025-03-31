@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:animated_to/src/action.dart';
 import 'package:animated_to/src/helper.dart';
 import 'package:animated_to/src/journey.dart';
@@ -193,6 +195,88 @@ List<MutationAction> composeSpringAnimation(
                           Offset(0, cache.scrollOriginal! - offset),
                     (true, null) =>
                       Offset(controller.value.x, controller.value.y),
+                    (false, _) => offset,
+                  },
+                ),
+              ],
+      },
+    ];
+
+List<MutationAction> composeBurstAnimation(
+  AnimationController controllerX,
+  AnimationController controllerY,
+  Offset offset,
+  double? scrollOffset,
+  Journey journey,
+  OffsetCache cache,
+) =>
+    [
+      OffsetCacheMutation(last: offset, scroll: scrollOffset),
+      ...switch ((
+        isScrolling: cache.scrollLast != scrollOffset,
+        isAnimating: controllerX.isAnimating,
+      )) {
+        (isScrolling: true, isAnimating: true) => [
+            // cache scroll offset and position considering scroll gap
+            // regardless of whether animating now or not.
+            JourneyMutation(Journey.tighten(offset)),
+            PaintChild.requireContext(
+              Offset(controllerX.value, controllerY.value) +
+                  Offset(0, cache.scrollOriginal! - scrollOffset!),
+            ),
+          ],
+        (isScrolling: true, isAnimating: false) => (
+            scrollGap: (cache.scrollLast ?? 0.0) - scrollOffset!,
+            positionGap: offset - (cache.last ?? offset)
+          ).let((it) => [
+                // cache scroll offset and position considering scroll gap
+                // regardless of whether animating now or not.
+                ...(it.scrollGap - it.positionGap.distance).abs() > 40
+                    ? Journey(from: journey.to, to: offset).let((journey) => [
+                          ..._composeStartAnimation(
+                            controllerX.isAnimating,
+                            journey,
+                            scrollOffset,
+                          ),
+                          PaintChild.requireContext(journey.from),
+                        ])!
+                    : [
+                        JourneyMutation(Journey.tighten(offset)),
+                        PaintChild.requireContext(offset),
+                      ],
+              ])!,
+        (isScrolling: false, :final isAnimating) => journey.to != offset
+            ? Journey(
+                from: isAnimating
+                    ? Offset(controllerX.value, controllerY.value) -
+                        Offset(
+                          0,
+                          (scrollOffset ?? 0) - (cache.scrollOriginal ?? 0),
+                        )
+                    : journey.to,
+                to: offset,
+              ).let((journey) => [
+                  // if [position] is updated during animation,
+                  // start another animation from current position
+                  ..._composeStartAnimation(
+                    controllerX.isAnimating,
+                    journey,
+                    scrollOffset,
+                    velocity: (
+                      (Random().nextDouble() * 1000 - 500) * 4,
+                      Random().nextDouble() * 3000 - 2500,
+                    ),
+                  ),
+                  PaintChild.requireContext(journey.from),
+                ])!
+            : [
+                PaintChild.requireContext(
+                  switch ((controllerX.isAnimating, scrollOffset)) {
+                    (true, final double offset) =>
+                      Offset(controllerX.value, controllerY.value) +
+                          Offset(0, cache.scrollOriginal! - offset),
+                    (true, null) =>
+                      Offset(controllerX.value, controllerY.value),
                     (false, _) => offset,
                   },
                 ),

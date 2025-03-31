@@ -138,10 +138,9 @@ class _Item extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedTo.spring(
+    return AnimatedTo.burst(
       enabled: enabled,
       globalKey: GlobalObjectKey(item),
-      slidingFrom: Offset(0, 30),
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
