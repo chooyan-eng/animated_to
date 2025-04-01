@@ -128,7 +128,7 @@ class _GraphPageState extends State<GraphPage> {
                             spacing: 10,
                             children: [
                               ...data.map(
-                                (e) => AnimatedTo.spring(
+                                (e) => AnimatedTo.burst(
                                   globalKey: e.key,
                                   child: _Bar(
                                     value: e.value,

@@ -7,7 +7,6 @@ import 'package:example/list_switch_page.dart';
 import 'package:example/login_page.dart';
 import 'package:example/scrollable_page.dart';
 import 'package:example/simple_demo_page.dart';
-import 'package:example/spring_page.dart';
 import 'package:example/todo_cards_page.dart';
 import 'package:example/two_lines_page.dart';
 import 'package:flutter/material.dart';
@@ -66,7 +65,7 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
             spacing: 4,
             children: [
               _DrawerMenuItem(
-                title: 'Spring Demo',
+                title: 'Login Page',
                 vsync: this,
                 onTap: () {
                   Navigator.of(context).push(
@@ -223,9 +222,9 @@ class _Card extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = 60.0;
-    return AnimatedTo.spring(
+    return AnimatedTo.burst(
       // try either of [appearingFrom] or [slidingFrom]
-      appearingFrom: const Offset(100, 0),
+      // appearingFrom: const Offset(100, 0),
       // slidingFrom: const Offset(0, 100),
 
       // [GlobalObjectKey] is required to identify the widget
@@ -304,9 +303,9 @@ class _DrawerMenuItemState extends State<_DrawerMenuItem> {
     if (_preparing) {
       return const SizedBox.shrink();
     }
-    return AnimatedTo.spring(
+    return AnimatedTo.burst(
       globalKey: GlobalObjectKey(widget.title),
-      appearingFrom: const Offset(0, -100),
+      // appearingFrom: const Offset(0, -100),
       // duration: const Duration(milliseconds: 500),
       // curve: Curves.easeOutQuad,
       child: Padding(

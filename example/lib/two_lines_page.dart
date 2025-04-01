@@ -86,7 +86,7 @@ class _SpringItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedTo.spring(
+    return AnimatedTo.burst(
       globalKey: GlobalObjectKey(item),
       child: GestureDetector(
         onTap: onTap,
