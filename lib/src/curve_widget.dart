@@ -106,13 +106,6 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
 
   @override
   RenderObject createRenderObject(BuildContext context) {
-    // listen to scroll offset and update [_scrollOffset] of [_RenderAnimatedTo] when it changes.
-    controller?.addListener(() {
-      final renderObject = context.findRenderObject();
-      if (renderObject is _RenderAnimatedTo) {
-        renderObject.scrollOffset = controller!.offset;
-      }
-    });
     return _RenderAnimatedTo(
       duration: duration,
       curve: curve,
@@ -121,6 +114,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
       slidingFrom: slidingFrom,
       enabled: enabled,
       onEnd: onEnd,
+      scrollController: controller,
     );
   }
 
@@ -134,7 +128,8 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
       ..appearingFrom = appearingFrom
       ..slidingFrom = slidingFrom
       ..enabled = enabled
-      ..onEnd = onEnd;
+      ..onEnd = onEnd
+      ..scrollController = controller;
   }
 }
 
@@ -149,6 +144,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
     required bool enabled,
     void Function(AnimationEndCause cause)? onEnd,
     double? scrollOffset,
+    ScrollController? scrollController,
   })  : _duration = duration,
         _curve = curve,
         _vsync = vsync,
@@ -156,7 +152,19 @@ class _RenderAnimatedTo extends RenderProxyBox {
         _slidingFrom = slidingFrom,
         _enabled = enabled,
         _onEnd = onEnd,
-        _scrollOffset = scrollOffset;
+        _scrollOffset = scrollOffset,
+        _scrollController = scrollController {
+    // listen to scroll offset and update [_scrollOffset] of [_RenderAnimatedTo] when it changes.
+    if (scrollController != null) {
+      scrollController.addListener(scrollControllerListener);
+    }
+  }
+
+  void scrollControllerListener() {
+    if (_scrollController != null) {
+      scrollOffset = _scrollController!.offset;
+    }
+  }
 
   Duration _duration;
   set duration(Duration value) {
@@ -208,6 +216,25 @@ class _RenderAnimatedTo extends RenderProxyBox {
 
   /// cache of [Offset]s for calculation
   var _cache = OffsetCache();
+
+  ScrollController? _scrollController;
+
+  set scrollController(ScrollController? value) {
+    // // Update the listener when the controller is changed
+    if (_scrollController != value) {
+      // Remove the old listener
+      if (_scrollController != null) {
+        _scrollController!.removeListener(scrollControllerListener);
+      }
+
+      // Register a new listener
+      if (value != null) {
+        value.addListener(scrollControllerListener);
+      }
+    }
+
+    _scrollController = value;
+  }
 
   /// [offset] is the position where [child] should be painted if no animation is running.
   /// [_RenderAnimatedTo] prevents the [child] from being painted at [offset],
@@ -313,6 +340,10 @@ class _RenderAnimatedTo extends RenderProxyBox {
 
   @override
   void dispose() {
+    if (_scrollController != null) {
+      _scrollController!.removeListener(scrollControllerListener);
+      _scrollController = null;
+    }
     if (_controller != null) {
       _applyMutation(
         [_controller!.isAnimating ? AnimationCancel() : AnimationEnd()],

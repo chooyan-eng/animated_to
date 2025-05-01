@@ -111,13 +111,6 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
 
   @override
   RenderObject createRenderObject(BuildContext context) {
-    // listen to scroll offset and update [_scrollOffset] of [_RenderAnimatedTo] when it changes.
-    controller?.addListener(() {
-      final renderObject = context.findRenderObject();
-      if (renderObject is _RenderAnimatedTo) {
-        renderObject.scrollOffset = controller!.offset;
-      }
-    });
     return _RenderAnimatedTo(
       description: description,
       vsync: vsync,
@@ -126,6 +119,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
       enabled: enabled,
       onEnd: onEnd,
       velocityBuilder: velocityBuilder,
+      scrollController: controller,
     );
   }
 
@@ -139,7 +133,8 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
       ..slidingFrom = slidingFrom
       ..enabled = enabled
       ..onEnd = onEnd
-      ..velocityBuilder = velocityBuilder;
+      ..velocityBuilder = velocityBuilder
+      ..scrollController = controller;
   }
 }
 
@@ -154,17 +149,31 @@ class _RenderAnimatedTo extends RenderProxyBox {
     void Function(AnimationEndCause cause)? onEnd,
     Offset Function()? velocityBuilder,
     double? scrollOffset,
+    ScrollController? scrollController,
   })  : _vsync = vsync,
         _appearingFrom = appearingFrom,
         _slidingFrom = slidingFrom,
         _enabled = enabled,
         _onEnd = onEnd,
         _velocityBuilder = velocityBuilder,
-        _scrollOffset = scrollOffset {
+        _scrollOffset = scrollOffset,
+        _scrollController = scrollController {
+
+    // listen to scroll offset and update [_scrollOffset] of [_RenderAnimatedTo] when it changes.
+    if (scrollController != null) {
+      scrollController.addListener(scrollControllerListener);
+    }
+
     _controller = SpringSimulationController2D.unbounded(
       vsync: _vsync,
       spring: description,
     )..addListener(markNeedsPaint);
+  }
+
+  void scrollControllerListener() {
+    if (_scrollController != null) {
+      scrollOffset = _scrollController!.offset;
+    }
   }
 
   set description(SpringDescription value) {
@@ -215,6 +224,24 @@ class _RenderAnimatedTo extends RenderProxyBox {
 
   /// for scroll management
   OffsetCache _cache = OffsetCache();
+
+  ScrollController? _scrollController;
+  set scrollController(ScrollController? value) {
+    // // Update the listener when the controller is changed
+    if (_scrollController != value) {
+      // Remove the old listener
+      if (_scrollController != null) {
+        _scrollController!.removeListener(scrollControllerListener);
+      }
+
+      // Register a new listener
+      if (value != null) {
+        value.addListener(scrollControllerListener);
+      }
+    }
+
+    _scrollController = value;
+  }
 
   /// [offset] is the position where [child] should be painted if no animation is running.
   /// [_RenderAnimatedTo] prevents the [child] from being painted at [offset],
@@ -297,6 +324,10 @@ class _RenderAnimatedTo extends RenderProxyBox {
 
   @override
   void dispose() {
+    if (_scrollController != null) {
+      _scrollController!.removeListener(scrollControllerListener);
+      _scrollController = null;
+    }
     if (_controller.isAnimating) {
       _applyMutation([AnimationCancel()]);
     }
