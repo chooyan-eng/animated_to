@@ -164,7 +164,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
     _controller = SpringSimulationController2D.unbounded(
       vsync: _vsync,
       spring: description,
-    )..addListener(markNeedsPaint);
+    )..addListener(_attemptPaint);
   }
 
   set description(SpringDescription value) {
@@ -313,8 +313,15 @@ class _RenderAnimatedTo extends RenderProxyBox {
     if (_controller.isAnimating) {
       _applyMutation([AnimationCancel()]);
     }
-    _controller.removeListener(markNeedsPaint);
+    _controller.removeListener(_attemptPaint);
     _controller.dispose();
     super.dispose();
+  }
+
+  /// attempt [markNeedsPaint] if [owner] is not operating in [paint] phase.
+  void _attemptPaint() {
+    if (owner?.debugDoingPaint != true) {
+      markNeedsPaint();
+    }
   }
 }

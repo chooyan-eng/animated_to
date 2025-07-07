@@ -278,7 +278,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
           );
 
           _controller?.duration = _duration;
-          _controller!.addListener(markNeedsPaint);
+          _controller!.addListener(_attemptPaint);
 
           _animation = _controller!
               .drive(
@@ -296,13 +296,13 @@ class _RenderAnimatedTo extends RenderProxyBox {
           });
         case AnimationEnd():
           _onEnd?.call(AnimationEndCause.completed);
-          _controller?.removeListener(markNeedsPaint);
+          _controller?.removeListener(_attemptPaint);
           _controller?.dispose();
           _controller = null;
           _animation = null;
         case AnimationCancel():
           _onEnd?.call(AnimationEndCause.interrupted);
-          _controller?.removeListener(markNeedsPaint);
+          _controller?.removeListener(_attemptPaint);
           _controller?.dispose();
           _controller = null;
           _animation = null;
@@ -332,5 +332,12 @@ class _RenderAnimatedTo extends RenderProxyBox {
       );
     }
     super.dispose();
+  }
+
+  /// attempt [markNeedsPaint] if [owner] is not operating in [paint] phase.
+  void _attemptPaint() {
+    if (owner?.debugDoingPaint != true) {
+      markNeedsPaint();
+    }
   }
 }
