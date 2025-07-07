@@ -1,6 +1,6 @@
 name: animated_to
 description: "AnimateTo animates its child to a new position requiring no calculation."
-version: 0.3.2
+version: 0.3.3
 homepage: https://github.com/chooyan-eng/animated_to
 topics:
   - animation

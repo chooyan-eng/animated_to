@@ -1,3 +1,6 @@
+## [0.3.3] - 2025.7.7
+- enhanced the logic of how to detect position updates when scrolling
+
 ## [0.3.2] - 2025.3.21
 - add `sizeWidget` argument that enables us to collaborate with size animation
 
