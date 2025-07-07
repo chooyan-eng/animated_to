@@ -216,6 +216,17 @@ class _RenderAnimatedTo extends RenderProxyBox {
   /// for scroll management
   OffsetCache _cache = OffsetCache();
 
+  /// a flag to indicate the [paint] phase is right after [layout] phase.
+  bool _dirtyLayout = false;
+
+  /// to distinguish the [offset] updates in [paint] phase is caused by [layout] or not,
+  /// especially during scrolling, [_dirtyLayout] is set true when [layout] is called.
+  @override
+  void layout(Constraints constraints, {bool parentUsesSize = false}) {
+    _dirtyLayout = true;
+    super.layout(constraints, parentUsesSize: parentUsesSize);
+  }
+
   /// [offset] is the position where [child] should be painted if no animation is running.
   /// [_RenderAnimatedTo] prevents the [child] from being painted at [offset],
   /// and paints at animating position instead by calling [context.paintChild].
@@ -254,6 +265,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
       _scrollOffset,
       _journey,
       _cache,
+      _dirtyLayout,
     );
 
     _applyMutation(animationActions.provided(context));
@@ -293,6 +305,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
           );
       }
     }
+    _dirtyLayout = false;
   }
 
   @override

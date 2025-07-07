@@ -54,6 +54,7 @@ List<MutationAction> composeAnimation(
   double? scrollOffset,
   Journey journey,
   OffsetCache cache,
+  bool dirtyLayout,
 ) =>
     [
       OffsetCacheMutation(last: offset, scroll: scrollOffset),
@@ -76,7 +77,7 @@ List<MutationAction> composeAnimation(
           ).let((it) => [
                 // cache scroll offset and position considering scroll gap
                 // regardless of whether animating now or not.
-                ...(it.scrollGap - it.positionGap.distance).abs() > 40
+                ...dirtyLayout
                     ? Journey(from: journey.to, to: offset).let((journey) => [
                           ..._composeStartAnimation(
                             controller?.isAnimating == true,
@@ -129,6 +130,7 @@ List<MutationAction> composeSpringAnimation(
   double? scrollOffset,
   Journey journey,
   OffsetCache cache,
+  bool dirtyLayout,
 ) =>
     [
       OffsetCacheMutation(last: offset, scroll: scrollOffset),
@@ -151,7 +153,7 @@ List<MutationAction> composeSpringAnimation(
           ).let((it) => [
                 // cache scroll offset and position considering scroll gap
                 // regardless of whether animating now or not.
-                ...(it.scrollGap - it.positionGap.distance).abs() > 40
+                ...dirtyLayout
                     ? Journey(from: journey.to, to: offset).let((journey) => [
                           ..._composeStartAnimation(
                             controller.isAnimating,
