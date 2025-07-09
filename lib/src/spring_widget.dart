@@ -19,7 +19,8 @@ class SpringAnimatedTo extends StatefulWidget {
     this.slidingFrom,
     this.enabled = true,
     this.onEnd,
-    this.controller,
+    this.verticalController,
+    this.horizontalController,
     this.child,
     this.sizeWidget,
   }) : super(key: globalKey);
@@ -53,7 +54,13 @@ class SpringAnimatedTo extends StatefulWidget {
   /// This must be provided if the child is in a [SingleChildScrollView].
   ///
   /// Note: [ListView] and its families are not supported currently.
-  final ScrollController? controller;
+  final ScrollController? verticalController;
+
+  /// [ScrollController] to get scroll offset.
+  /// This must be provided if the child is in a [SingleChildScrollView] with [Axis.horizontal].
+  ///
+  /// Note: [ListView] and its families are not supported currently.
+  final ScrollController? horizontalController;
 
   /// [child] to animate.
   final Widget? child;
@@ -76,7 +83,8 @@ class _SpringAnimatedToState extends State<SpringAnimatedTo>
       slidingFrom: widget.slidingFrom,
       enabled: widget.enabled,
       onEnd: widget.onEnd,
-      controller: widget.controller,
+      verticalController: widget.verticalController,
+      horizontalController: widget.horizontalController,
       velocityBuilder: widget.velocityBuilder,
       child: widget.sizeWidget == null
           ? widget.child
@@ -95,7 +103,8 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
   final Offset? slidingFrom;
   final bool enabled;
   final void Function(AnimationEndCause cause)? onEnd;
-  final ScrollController? controller;
+  final ScrollController? verticalController;
+  final ScrollController? horizontalController;
   final Offset Function()? velocityBuilder;
   const _AnimatedToRenderObjectWidget({
     super.child,
@@ -105,17 +114,24 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
     this.slidingFrom,
     this.enabled = true,
     this.onEnd,
-    this.controller,
+    this.verticalController,
+    this.horizontalController,
     this.velocityBuilder,
   });
 
   @override
   RenderObject createRenderObject(BuildContext context) {
     // listen to scroll offset and update [_scrollOffset] of [_RenderAnimatedTo] when it changes.
-    controller?.addListener(() {
+    verticalController?.addListener(() {
       final renderObject = context.findRenderObject();
       if (renderObject is _RenderAnimatedTo) {
-        renderObject.scrollOffset = controller!.offset;
+        renderObject.verticalScrollOffset = verticalController!.offset;
+      }
+    });
+    horizontalController?.addListener(() {
+      final renderObject = context.findRenderObject();
+      if (renderObject is _RenderAnimatedTo) {
+        renderObject.horizontalScrollOffset = horizontalController!.offset;
       }
     });
     return _RenderAnimatedTo(
@@ -153,14 +169,16 @@ class _RenderAnimatedTo extends RenderProxyBox {
     required bool enabled,
     void Function(AnimationEndCause cause)? onEnd,
     Offset Function()? velocityBuilder,
-    double? scrollOffset,
+    double? verticalScrollOffset,
+    double? horizontalScrollOffset,
   })  : _vsync = vsync,
         _appearingFrom = appearingFrom,
         _slidingFrom = slidingFrom,
         _enabled = enabled,
         _onEnd = onEnd,
         _velocityBuilder = velocityBuilder,
-        _scrollOffset = scrollOffset {
+        _verticalScrollOffset = verticalScrollOffset,
+        _horizontalScrollOffset = horizontalScrollOffset {
     _controller = SpringSimulationController2D.unbounded(
       vsync: _vsync,
       spring: description,
@@ -197,9 +215,14 @@ class _RenderAnimatedTo extends RenderProxyBox {
   }
 
   /// This field is always updated by [controller]'s callback.
-  double? _scrollOffset;
-  set scrollOffset(double? value) {
-    _scrollOffset = value;
+  double? _verticalScrollOffset;
+  set verticalScrollOffset(double? value) {
+    _verticalScrollOffset = value;
+  }
+
+  double? _horizontalScrollOffset;
+  set horizontalScrollOffset(double? value) {
+    _horizontalScrollOffset = value;
   }
 
   Offset Function()? _velocityBuilder;
@@ -246,7 +269,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
           _appearingFrom,
           _slidingFrom,
           offset,
-          _scrollOffset ?? 0.0,
+          Offset(_horizontalScrollOffset ?? 0.0, _verticalScrollOffset ?? 0.0),
         ),
       _ => null,
     };
@@ -262,7 +285,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
     final animationActions = composeSpringAnimation(
       _controller,
       offset,
-      _scrollOffset,
+      Offset(_horizontalScrollOffset ?? 0.0, _verticalScrollOffset ?? 0.0),
       _journey,
       _cache,
       _dirtyLayout,
