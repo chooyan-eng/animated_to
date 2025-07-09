@@ -1,3 +1,7 @@
+## [0.4.0] - 2025.7.9
+- Support animation on horizontal `SingleChildScrollView`. 
+- `controller` is renamed to `verticalController`.
+
 ## [0.3.3+1] - 2025.7.8
 - Update document and example about `ListView`.
 

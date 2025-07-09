@@ -69,8 +69,6 @@ As `springster` is also used inside `animated_to` package(thanks @timcreatedit!)
 
 ![animation inside sliver](https://github.com/chooyan-eng/animated_to/raw/main/assets/animated_to_5.gif)
 
-- `AnimatedTo` does NOT work with horizontal or bidirectional scrolling widgets.
-
 ## All arguments
 
 | Argument | Type | Description |
@@ -81,7 +79,8 @@ As `springster` is also used inside `animated_to` package(thanks @timcreatedit!)
 | curve | Curve | (curve only) The curve of the animation. |
 | description | SpringDescription | (spring only) The configuration of the spring simulation. |
 | velocityBuilder | Offset Function()? | (spring only) A function to provide initial velocity to start spring animation. |
-| controller | AnimationController? | Required if `AnimatedTo` is on the subtree of `SingleChildScrollView`. Share the controller with the `SingleChildScrollView` to properly animate the widget. Don't provide one when `AnimatedTo` is on `ListView`. |
+| verticalController | AnimationController? | Required if `AnimatedTo` is on the subtree of vertical `SingleChildScrollView`. Share the controller with the `SingleChildScrollView` to properly animate the widget. Don't provide one when `AnimatedTo` is on `ListView`. |
+| horizontalController | AnimationController? | Required if `AnimatedTo` is on the subtree of horizontal `SingleChildScrollView`. Share the controller with the `SingleChildScrollView` to properly animate the widget. Don't provide one when `AnimatedTo` is on `ListView`. |
 | appearingFrom` | Offset? | The start position of the animation in the first frame. This offset is an absolute position in the global coordinate system. |
 | slidingFrom | Offset? | The start position of the animation in the first frame. This offset is a relative position to the child's intrinsic position. |
 | enabled | bool | Whether the animation is enabled. |
