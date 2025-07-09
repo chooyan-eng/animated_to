@@ -42,7 +42,8 @@ class AnimatedTo extends StatelessWidget {
     this.slidingFrom,
     this.enabled = true,
     this.onEnd,
-    this.controller,
+    this.verticalController,
+    this.horizontalController,
     this.description,
     this.velocityBuilder,
     this.child,
@@ -58,7 +59,8 @@ class AnimatedTo extends StatelessWidget {
     Offset? slidingFrom,
     bool enabled = true,
     void Function(AnimationEndCause cause)? onEnd,
-    ScrollController? controller,
+    ScrollController? verticalController,
+    ScrollController? horizontalController,
     Widget? child,
     Widget? sizeWidget,
   }) {
@@ -70,7 +72,8 @@ class AnimatedTo extends StatelessWidget {
       slidingFrom: slidingFrom,
       enabled: enabled,
       onEnd: onEnd,
-      controller: controller,
+      verticalController: verticalController,
+      horizontalController: horizontalController,
       sizeWidget: sizeWidget,
       child: child,
     );
@@ -85,7 +88,8 @@ class AnimatedTo extends StatelessWidget {
     Offset? slidingFrom,
     bool enabled = true,
     void Function(AnimationEndCause cause)? onEnd,
-    ScrollController? controller,
+    ScrollController? verticalController,
+    ScrollController? horizontalController,
     Widget? child,
     Widget? sizeWidget,
   }) {
@@ -97,7 +101,8 @@ class AnimatedTo extends StatelessWidget {
       slidingFrom: slidingFrom,
       enabled: enabled,
       onEnd: onEnd,
-      controller: controller,
+      verticalController: verticalController,
+      horizontalController: horizontalController,
       sizeWidget: sizeWidget,
       child: child,
     );
@@ -139,10 +144,16 @@ class AnimatedTo extends StatelessWidget {
   final void Function(AnimationEndCause cause)? onEnd;
 
   /// [ScrollController] to get scroll offset.
-  /// This must be provided if the child is in a [SingleChildScrollView].
+  /// This must be provided if the child is in a [SingleChildScrollView] with [Axis.vertical].
   ///
   /// Note: [ListView] and its families are not supported currently.
-  final ScrollController? controller;
+  final ScrollController? verticalController;
+
+  /// [ScrollController] to get scroll offset.
+  /// This must be provided if the child is in a [SingleChildScrollView] with [Axis.horizontal].
+  ///
+  /// Note: [ListView] and its families are not supported currently.
+  final ScrollController? horizontalController;
 
   /// [child] to animate.
   final Widget? child;
@@ -170,7 +181,8 @@ class AnimatedTo extends StatelessWidget {
           slidingFrom: slidingFrom,
           enabled: enabled,
           onEnd: onEnd,
-          controller: controller,
+          verticalController: verticalController,
+          horizontalController: horizontalController,
           sizeWidget: sizeWidget,
           child: child,
         )
@@ -182,7 +194,8 @@ class AnimatedTo extends StatelessWidget {
           slidingFrom: slidingFrom,
           enabled: enabled,
           onEnd: onEnd,
-          controller: controller,
+          verticalController: verticalController,
+          horizontalController: horizontalController,
           sizeWidget: sizeWidget,
           child: child,
         );

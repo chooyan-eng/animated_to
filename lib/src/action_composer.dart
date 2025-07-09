@@ -19,7 +19,7 @@ List<MutationAction> composeFirstFrame(
   Offset? appearingFrom,
   Offset? slidingFrom,
   Offset offset,
-  double scrollOffset,
+  Offset scrollOffset,
 ) =>
     switch ((appearingFrom, slidingFrom)) {
       (final Offset from, null) =>
@@ -51,7 +51,7 @@ List<MutationAction> composeAnimation(
   AnimationController? controller,
   Offset? animationValue,
   Offset offset,
-  double? scrollOffset,
+  Offset scrollOffset,
   Journey journey,
   OffsetCache cache,
   bool dirtyLayout,
@@ -67,12 +67,11 @@ List<MutationAction> composeAnimation(
             // regardless of whether animating now or not.
             JourneyMutation(Journey.tighten(offset)),
             PaintChild.requireContext(
-              animationValue! +
-                  Offset(0, cache.scrollOriginal! - scrollOffset!),
+              animationValue! + cache.scrollOriginal! - scrollOffset,
             ),
           ],
         (isScrolling: true, isAnimating: false) => (
-            scrollGap: (cache.scrollLast ?? 0.0) - scrollOffset!,
+            scrollGap: (cache.scrollLast ?? Offset.zero) - scrollOffset,
             positionGap: offset - (cache.last ?? offset)
           ).let((it) => [
                 // cache scroll offset and position considering scroll gap
@@ -95,10 +94,7 @@ List<MutationAction> composeAnimation(
             ? Journey(
                 from: isAnimating
                     ? animationValue! -
-                        Offset(
-                          0,
-                          (scrollOffset ?? 0) - (cache.scrollOriginal ?? 0),
-                        )
+                        (scrollOffset - (cache.scrollOriginal ?? Offset.zero))
                     : journey.to,
                 to: offset,
               ).let((journey) => [
@@ -114,10 +110,9 @@ List<MutationAction> composeAnimation(
             : [
                 PaintChild.requireContext(
                   switch ((animationValue, scrollOffset)) {
-                    (final Offset value, final double offset) =>
-                      value + Offset(0, cache.scrollOriginal! - offset),
-                    (final Offset value, null) => value,
-                    (null, _) => offset,
+                    (final Offset value, final Offset offset) =>
+                      value + (cache.scrollOriginal! - offset),
+                    _ => offset,
                   },
                 ),
               ],
@@ -127,7 +122,7 @@ List<MutationAction> composeAnimation(
 List<MutationAction> composeSpringAnimation(
   SpringSimulationController2D controller,
   Offset offset,
-  double? scrollOffset,
+  Offset scrollOffset,
   Journey journey,
   OffsetCache cache,
   bool dirtyLayout,
@@ -144,11 +139,12 @@ List<MutationAction> composeSpringAnimation(
             JourneyMutation(Journey.tighten(offset)),
             PaintChild.requireContext(
               Offset(controller.value.x, controller.value.y) +
-                  Offset(0, cache.scrollOriginal! - scrollOffset!),
+                  cache.scrollOriginal! -
+                  scrollOffset,
             ),
           ],
         (isScrolling: true, isAnimating: false) => (
-            scrollGap: (cache.scrollLast ?? 0.0) - scrollOffset!,
+            scrollGap: (cache.scrollLast ?? Offset.zero) - scrollOffset,
             positionGap: offset - (cache.last ?? offset)
           ).let((it) => [
                 // cache scroll offset and position considering scroll gap
@@ -171,10 +167,7 @@ List<MutationAction> composeSpringAnimation(
             ? Journey(
                 from: isAnimating
                     ? Offset(controller.value.x, controller.value.y) -
-                        Offset(
-                          0,
-                          (scrollOffset ?? 0) - (cache.scrollOriginal ?? 0),
-                        )
+                        (scrollOffset - (cache.scrollOriginal ?? Offset.zero))
                     : journey.to,
                 to: offset,
               ).let((journey) => [
@@ -190,10 +183,11 @@ List<MutationAction> composeSpringAnimation(
             : [
                 PaintChild.requireContext(
                   switch ((controller.isAnimating, scrollOffset)) {
-                    (true, final double offset) =>
+                    (true, final Offset offset) =>
                       Offset(controller.value.x, controller.value.y) +
-                          Offset(0, cache.scrollOriginal! - offset),
-                    (true, null) =>
+                          cache.scrollOriginal! -
+                          offset,
+                    (true, Offset.zero) =>
                       Offset(controller.value.x, controller.value.y),
                     (false, _) => offset,
                   },
@@ -205,12 +199,12 @@ List<MutationAction> composeSpringAnimation(
 List<MutationAction> _composeStartAnimation(
   bool isAnimating,
   Journey journey,
-  double? scrollOffset, {
+  Offset? scrollOffset, {
   (double, double)? velocity,
 }) =>
     [
       if (isAnimating) AnimationCancel(),
       JourneyMutation(journey),
       AnimationStart(journey, velocity),
-      OffsetCacheMutation(scrollOriginal: scrollOffset ?? 0),
+      OffsetCacheMutation(scrollOriginal: scrollOffset),
     ];

@@ -16,7 +16,8 @@ class CurveAnimatedTo extends StatefulWidget {
     this.slidingFrom,
     this.enabled = true,
     this.onEnd,
-    this.controller,
+    this.verticalController,
+    this.horizontalController,
     this.child,
     this.sizeWidget,
   }) : super(key: globalKey);
@@ -46,10 +47,16 @@ class CurveAnimatedTo extends StatefulWidget {
   final void Function(AnimationEndCause cause)? onEnd;
 
   /// [ScrollController] to get scroll offset.
-  /// This must be provided if the child is in a [SingleChildScrollView].
+  /// This must be provided if the child is in a [SingleChildScrollView] with [Axis.vertical].
   ///
   /// Note: [ListView] and its families are not supported currently.
-  final ScrollController? controller;
+  final ScrollController? verticalController;
+
+  /// [ScrollController] to get scroll offset.
+  /// This must be provided if the child is in a [SingleChildScrollView] with [Axis.horizontal].
+  ///
+  /// Note: [ListView] and its families are not supported currently.
+  final ScrollController? horizontalController;
 
   /// [child] to animate.
   final Widget? child;
@@ -72,7 +79,8 @@ class _CurveAnimatedToState extends State<CurveAnimatedTo>
         slidingFrom: widget.slidingFrom,
         enabled: widget.enabled,
         onEnd: widget.onEnd,
-        controller: widget.controller,
+        verticalController: widget.verticalController,
+        horizontalController: widget.horizontalController,
         child: widget.sizeWidget == null
             ? widget.child
             : SizeMaintainer(
@@ -90,7 +98,8 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
   final Offset? slidingFrom;
   final bool enabled;
   final void Function(AnimationEndCause cause)? onEnd;
-  final ScrollController? controller;
+  final ScrollController? verticalController;
+  final ScrollController? horizontalController;
 
   const _AnimatedToRenderObjectWidget({
     super.child,
@@ -101,16 +110,23 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
     this.slidingFrom,
     this.enabled = true,
     this.onEnd,
-    this.controller,
+    this.verticalController,
+    this.horizontalController,
   });
 
   @override
   RenderObject createRenderObject(BuildContext context) {
     // listen to scroll offset and update [_scrollOffset] of [_RenderAnimatedTo] when it changes.
-    controller?.addListener(() {
+    verticalController?.addListener(() {
       final renderObject = context.findRenderObject();
       if (renderObject is _RenderAnimatedTo) {
-        renderObject.scrollOffset = controller!.offset;
+        renderObject.verticalScrollOffset = verticalController!.offset;
+      }
+    });
+    horizontalController?.addListener(() {
+      final renderObject = context.findRenderObject();
+      if (renderObject is _RenderAnimatedTo) {
+        renderObject.horizontalScrollOffset = horizontalController!.offset;
       }
     });
     return _RenderAnimatedTo(
@@ -148,15 +164,13 @@ class _RenderAnimatedTo extends RenderProxyBox {
     Offset? slidingFrom,
     required bool enabled,
     void Function(AnimationEndCause cause)? onEnd,
-    double? scrollOffset,
   })  : _duration = duration,
         _curve = curve,
         _vsync = vsync,
         _appearingFrom = appearingFrom,
         _slidingFrom = slidingFrom,
         _enabled = enabled,
-        _onEnd = onEnd,
-        _scrollOffset = scrollOffset;
+        _onEnd = onEnd;
 
   Duration _duration;
   set duration(Duration value) {
@@ -194,9 +208,14 @@ class _RenderAnimatedTo extends RenderProxyBox {
   }
 
   /// This field is always updated by [controller]'s callback.
-  double? _scrollOffset;
-  set scrollOffset(double? value) {
-    _scrollOffset = value;
+  double? _verticalScrollOffset;
+  set verticalScrollOffset(double? value) {
+    _verticalScrollOffset = value;
+  }
+
+  double? _horizontalScrollOffset;
+  set horizontalScrollOffset(double? value) {
+    _horizontalScrollOffset = value;
   }
 
   /// current journey
@@ -239,7 +258,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
           _appearingFrom,
           _slidingFrom,
           offset,
-          _scrollOffset ?? 0.0,
+          Offset(_horizontalScrollOffset ?? 0.0, _verticalScrollOffset ?? 0.0),
         ),
       _ => null,
     };
@@ -256,7 +275,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
       _controller,
       _animation?.value,
       offset,
-      _scrollOffset,
+      Offset(_horizontalScrollOffset ?? 0.0, _verticalScrollOffset ?? 0.0),
       _journey,
       _cache,
       _dirtyLayout,

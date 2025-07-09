@@ -125,7 +125,7 @@ class _ListItem extends StatelessWidget {
         // if we want to change size as well as position, we need to provide a widget
         // whose size will be calculated exact the same as child
         sizeWidget: const SizedBox(width: 60, height: 60),
-        controller: scrollController,
+        verticalController: scrollController,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
@@ -167,7 +167,7 @@ class _GridItem extends StatelessWidget {
               width: constraints.maxWidth,
               child: AspectRatio(aspectRatio: 1),
             ),
-            controller: scrollController,
+            verticalController: scrollController,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,

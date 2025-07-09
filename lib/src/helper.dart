@@ -9,13 +9,13 @@ class OffsetCache {
     this.last,
   });
 
-  final double? scrollLast;
-  final double? scrollOriginal;
+  final Offset? scrollLast;
+  final Offset? scrollOriginal;
   final Offset? last;
 
   OffsetCache copyWith({
-    double? scrollLast,
-    double? scrollOriginal,
+    Offset? scrollLast,
+    Offset? scrollOriginal,
     Offset? last,
   }) =>
       OffsetCache(

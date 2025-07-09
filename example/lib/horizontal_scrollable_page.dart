@@ -3,16 +3,17 @@ import 'dart:async';
 import 'package:animated_to/animated_to.dart';
 import 'package:flutter/material.dart';
 
-class ScrollablePage extends StatefulWidget {
-  const ScrollablePage({super.key});
+class HorizontalScrollablePage extends StatefulWidget {
+  const HorizontalScrollablePage({super.key});
 
   @override
-  State<ScrollablePage> createState() => _ScrollablePageState();
+  State<HorizontalScrollablePage> createState() =>
+      _HorizontalScrollablePageState();
 }
 
-class _ScrollablePageState extends State<ScrollablePage>
+class _HorizontalScrollablePageState extends State<HorizontalScrollablePage>
     with TickerProviderStateMixin {
-  bool _isLeft = true;
+  bool _isTop = true;
 
   final _scrollController = ScrollController();
 
@@ -22,7 +23,7 @@ class _ScrollablePageState extends State<ScrollablePage>
     // start automatically
     Timer(const Duration(milliseconds: 100), () {
       setState(() {
-        _isLeft = !_isLeft;
+        _isTop = !_isTop;
       });
     });
   }
@@ -34,19 +35,20 @@ class _ScrollablePageState extends State<ScrollablePage>
         backgroundColor: Colors.grey[850],
         foregroundColor: Colors.white,
         title: const Text(
-          'Scrollable Page',
+          'Horizontal Scrollable Page',
           style: TextStyle(color: Colors.white),
         ),
       ),
       backgroundColor: Colors.black,
       body: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
         controller: _scrollController,
-        child: Column(
+        child: Row(
           children: [
-            const SizedBox(height: 62),
+            const SizedBox(width: 62),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              height: 100,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              width: 100,
               decoration: BoxDecoration(
                 color: Colors.grey,
                 borderRadius: BorderRadius.circular(20),
@@ -62,8 +64,8 @@ class _ScrollablePageState extends State<ScrollablePage>
               ),
             ),
             Container(
-              width: double.infinity,
-              height: MediaQuery.sizeOf(context).height,
+              height: double.infinity,
+              width: MediaQuery.sizeOf(context).width,
               color: Colors.black,
               child: Stack(
                 children: [
@@ -72,11 +74,11 @@ class _ScrollablePageState extends State<ScrollablePage>
                     body: Stack(
                       children: [
                         Positioned(
-                          left: _isLeft ? 50 : null,
-                          right: _isLeft ? null : 50,
-                          top: MediaQuery.sizeOf(context).height / 2 - 50,
+                          top: _isTop ? 50 : null,
+                          bottom: _isTop ? null : 50,
+                          left: MediaQuery.sizeOf(context).width / 2 - 50,
                           child: AnimatedTo.curve(
-                            verticalController: _scrollController,
+                            horizontalController: _scrollController,
                             duration: const Duration(seconds: 1),
                             curve: Curves.easeInOutCubic,
                             globalKey: const GlobalObjectKey('afterImage'),
@@ -85,7 +87,7 @@ class _ScrollablePageState extends State<ScrollablePage>
                                   .addPostFrameCallback((timeStamp) {
                                 if (mounted) {
                                   setState(() {
-                                    _isLeft = !_isLeft;
+                                    _isTop = !_isTop;
                                   });
                                 }
                               });
@@ -99,12 +101,12 @@ class _ScrollablePageState extends State<ScrollablePage>
                 ],
               ),
             ),
-            const SizedBox(height: 100),
+            const SizedBox(width: 100),
             Material(
               color: Colors.black,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                height: 100,
+                width: 100,
                 decoration: BoxDecoration(
                   color: Colors.grey,
                   borderRadius: BorderRadius.circular(20),
@@ -120,7 +122,7 @@ class _ScrollablePageState extends State<ScrollablePage>
                 ),
               ),
             ),
-            const SizedBox(height: 100),
+            const SizedBox(width: 100),
           ],
         ),
       ),
