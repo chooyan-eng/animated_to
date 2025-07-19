@@ -116,19 +116,6 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
 
   @override
   RenderObject createRenderObject(BuildContext context) {
-    // listen to scroll offset and update [_scrollOffset] of [_RenderAnimatedTo] when it changes.
-    verticalController?.addListener(() {
-      final renderObject = context.findRenderObject();
-      if (renderObject is _RenderAnimatedTo) {
-        renderObject.verticalScrollOffset = verticalController!.offset;
-      }
-    });
-    horizontalController?.addListener(() {
-      final renderObject = context.findRenderObject();
-      if (renderObject is _RenderAnimatedTo) {
-        renderObject.horizontalScrollOffset = horizontalController!.offset;
-      }
-    });
     return _RenderAnimatedTo(
       duration: duration,
       curve: curve,
@@ -137,6 +124,8 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
       slidingFrom: slidingFrom,
       enabled: enabled,
       onEnd: onEnd,
+      verticalController: verticalController,
+      horizontalController: horizontalController,
     );
   }
 
@@ -150,7 +139,9 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
       ..appearingFrom = appearingFrom
       ..slidingFrom = slidingFrom
       ..enabled = enabled
-      ..onEnd = onEnd;
+      ..onEnd = onEnd
+      ..verticalController = verticalController
+      ..horizontalController = horizontalController;
   }
 }
 
@@ -164,13 +155,25 @@ class _RenderAnimatedTo extends RenderProxyBox {
     Offset? slidingFrom,
     required bool enabled,
     void Function(AnimationEndCause cause)? onEnd,
+    ScrollController? verticalController,
+    ScrollController? horizontalController,
   })  : _duration = duration,
         _curve = curve,
         _vsync = vsync,
         _appearingFrom = appearingFrom,
         _slidingFrom = slidingFrom,
         _enabled = enabled,
-        _onEnd = onEnd;
+        _onEnd = onEnd,
+        _verticalController = verticalController,
+        _horizontalController = horizontalController {
+    // listen to scroll offset and update [_scrollOffset] of [_RenderAnimatedTo] when it changes.
+    if (verticalController != null) {
+      verticalController.addListener(_verticalControllerListener);
+    }
+    if (horizontalController != null) {
+      horizontalController.addListener(_horizontalControllerListener);
+    }
+  }
 
   Duration _duration;
   set duration(Duration value) {
@@ -230,6 +233,42 @@ class _RenderAnimatedTo extends RenderProxyBox {
 
   /// a flag to indicate the [paint] phase is right after [layout] phase.
   bool _dirtyLayout = false;
+
+  ScrollController? _verticalController;
+  set verticalController(ScrollController? value) {
+    // // Update the listener when the controller is changed
+    if (_verticalController != value) {
+      // Remove the old listener
+      if (_verticalController != null) {
+        _verticalController!.removeListener(_verticalControllerListener);
+      }
+
+      // Register a new listener
+      if (value != null) {
+        value.addListener(_verticalControllerListener);
+      }
+    }
+
+    _verticalController = value;
+  }
+
+  ScrollController? _horizontalController;
+  set horizontalController(ScrollController? value) {
+    // // Update the listener when the controller is changed
+    if (_horizontalController != value) {
+      // Remove the old listener
+      if (_horizontalController != null) {
+        _horizontalController!.removeListener(_horizontalControllerListener);
+      }
+
+      // Register a new listener
+      if (value != null) {
+        value.addListener(_horizontalControllerListener);
+      }
+    }
+
+    _horizontalController = value;
+  }
 
   /// to distinguish the [offset] updates in [paint] phase is caused by [layout] or not,
   /// especially during scrolling, [_dirtyLayout] is set true when [layout] is called.
@@ -350,6 +389,14 @@ class _RenderAnimatedTo extends RenderProxyBox {
         [_controller!.isAnimating ? AnimationCancel() : AnimationEnd()],
       );
     }
+    if (_verticalController != null) {
+      _verticalController!.removeListener(_verticalControllerListener);
+      _verticalController = null;
+    }
+    if (_horizontalController != null) {
+      _horizontalController!.removeListener(_horizontalControllerListener);
+      _horizontalController = null;
+    }
     super.dispose();
   }
 
@@ -357,6 +404,18 @@ class _RenderAnimatedTo extends RenderProxyBox {
   void _attemptPaint() {
     if (owner?.debugDoingPaint != true) {
       markNeedsPaint();
+    }
+  }
+
+  void _verticalControllerListener() {
+    if (_verticalController != null) {
+      _verticalScrollOffset = _verticalController!.offset;
+    }
+  }
+
+  void _horizontalControllerListener() {
+    if (_horizontalController != null) {
+      _horizontalScrollOffset = _horizontalController!.offset;
     }
   }
 }
