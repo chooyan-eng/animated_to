@@ -6,8 +6,10 @@ import 'package:animated_to/src/journey.dart';
 import 'package:animated_to/src/let.dart';
 import 'package:animated_to/src/size_maintainer.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart';
-import 'package:springster/springster.dart';
+import 'package:motor/motor.dart';
+import 'package:motor/src/controllers/poly_motion_controller.dart';
 
 /// "spring" version of [AnimatedTo].
 class SpringAnimatedTo extends StatefulWidget {
@@ -109,7 +111,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
   const _AnimatedToRenderObjectWidget({
     super.child,
     required this.vsync,
-    this.description = Spring.defaultIOS,
+    required this.description,
     this.appearingFrom,
     this.slidingFrom,
     this.enabled = true,
@@ -174,9 +176,10 @@ class _RenderAnimatedTo extends RenderProxyBox {
         _velocityBuilder = velocityBuilder,
         _verticalScrollOffset = verticalScrollOffset,
         _horizontalScrollOffset = horizontalScrollOffset {
-    _controller = SpringSimulationController2D.unbounded(
+    _controller = PolyMotionController(
+      motion: Motion.customSpring(description),
       vsync: _vsync,
-      spring: description,
+      initialValue: [0, 0],
     )..addListener(_attemptPaint);
 
     // listen to scroll offset and update [_scrollOffset] of [_RenderAnimatedTo] when it changes.
@@ -189,7 +192,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
   }
 
   set description(SpringDescription value) {
-    _controller.spring = value;
+    _controller.motion = Motion.customSpring(value);
   }
 
   TickerProvider _vsync;
@@ -237,7 +240,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
   var _journey = Journey.tighten(Offset.zero);
 
   /// for animation
-  late SpringSimulationController2D _controller;
+  late PolyMotionController _controller;
 
   /// for scroll management
   OffsetCache _cache = OffsetCache();
@@ -341,10 +344,10 @@ class _RenderAnimatedTo extends RenderProxyBox {
           _journey = value;
         case AnimationStart(:final journey, :final velocity):
           _controller.animateTo(
-            (journey.to.dx, journey.to.dy),
-            from: (journey.from.dx, journey.from.dy),
+            [journey.to.dx, journey.to.dy],
+            from: [journey.from.dx, journey.from.dy],
             withVelocity: velocity ??
-                _velocityBuilder?.call().let((it) => (it.dx, it.dy)),
+                _velocityBuilder?.call().let((it) => [it.dx, it.dy]),
           ).then((_) {
             _applyMutation([AnimationEnd()]);
           });

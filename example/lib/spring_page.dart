@@ -1,6 +1,6 @@
 import 'package:animated_to/animated_to.dart';
 import 'package:flutter/material.dart';
-import 'package:springster/springster.dart';
+import 'package:motor/motor.dart';
 
 class SpringPage extends StatefulWidget {
   const SpringPage({super.key});
@@ -22,9 +22,12 @@ class _SpringPageState extends State<SpringPage> with TickerProviderStateMixin {
 
   // Get the current spring description
   SpringDescription get _currentSpring => switch (_springType) {
-        SpringType.defaultIOS => Spring.defaultIOS,
-        SpringType.bouncy => Spring.bouncy,
-        SpringType.snappy => Spring.snappy,
+        SpringType.defaultIOS =>
+          (Motion.smoothSpring() as SpringMotion).description,
+        SpringType.bouncy =>
+          (Motion.bouncySpring() as SpringMotion).description,
+        SpringType.snappy =>
+          (Motion.snappySpring() as SpringMotion).description,
         SpringType.gentle => SpringDescription(
             mass: 1,
             stiffness: 100,

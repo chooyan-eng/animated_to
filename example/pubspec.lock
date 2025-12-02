@@ -56,6 +56,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.8"
+  equatable:
+    dependency: transitive
+    description:
+      name: equatable
+      sha256: "567c64b3cb4cf82397aac55f4f0cbd3ca20d77c6c03bedbc4ceaddc08904aef7"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.7"
   fake_async:
     dependency: transitive
     description:
@@ -138,6 +146,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.17.0"
+  motor:
+    dependency: "direct main"
+    description:
+      name: motor
+      sha256: cbd49f21b00e568c2b1a55f134ed803614a107782f4fea7769693bca32940c58
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.0"
   path:
     dependency: transitive
     description:
@@ -159,14 +175,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.10.1"
-  springster:
-    dependency: "direct main"
-    description:
-      name: springster
-      sha256: "32b374f6d3c8827e862c0e8622254e7bd2817eefc1b009add98121e6c8f8dad9"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.4.0+1"
   stack_trace:
     dependency: transitive
     description:
@@ -225,4 +233,4 @@ packages:
     version: "15.0.0"
 sdks:
   dart: ">=3.8.0-0 <4.0.0"
-  flutter: ">=3.18.0-18.0.pre.54"
+  flutter: ">=3.32.0"
