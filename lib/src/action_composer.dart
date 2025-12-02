@@ -3,7 +3,7 @@ import 'package:animated_to/src/helper.dart';
 import 'package:animated_to/src/journey.dart';
 import 'package:animated_to/src/let.dart';
 import 'package:flutter/widgets.dart';
-import 'package:motor/src/controllers/poly_motion_controller.dart';
+import 'package:motor/motor.dart';
 
 List<MutationAction> composeDisabled(
   bool? isAnimating,
@@ -120,7 +120,7 @@ List<MutationAction> composeAnimation(
     ];
 
 List<MutationAction> composeSpringAnimation(
-  PolyMotionController controller,
+  MotionController<Offset> controller,
   Offset offset,
   Offset scrollOffset,
   Journey journey,
@@ -138,9 +138,7 @@ List<MutationAction> composeSpringAnimation(
             // regardless of whether animating now or not.
             JourneyMutation(Journey.tighten(offset)),
             PaintChild.requireContext(
-              Offset(controller.value[0], controller.value[1]) +
-                  cache.scrollOriginal! -
-                  scrollOffset,
+              controller.value + cache.scrollOriginal! - scrollOffset,
             ),
           ],
         (isScrolling: true, isAnimating: false) => (
@@ -166,7 +164,7 @@ List<MutationAction> composeSpringAnimation(
         (isScrolling: false, :final isAnimating) => journey.to != offset
             ? Journey(
                 from: isAnimating
-                    ? Offset(controller.value[0], controller.value[1]) -
+                    ? controller.value -
                         (scrollOffset - (cache.scrollOriginal ?? Offset.zero))
                     : journey.to,
                 to: offset,
@@ -184,11 +182,8 @@ List<MutationAction> composeSpringAnimation(
                 PaintChild.requireContext(
                   switch ((controller.isAnimating, scrollOffset)) {
                     (true, final Offset offset) =>
-                      Offset(controller.value[0], controller.value[1]) +
-                          cache.scrollOriginal! -
-                          offset,
-                    (true, Offset.zero) =>
-                      Offset(controller.value[0], controller.value[1]),
+                      controller.value + cache.scrollOriginal! - offset,
+                    (true, Offset.zero) => controller.value,
                     (false, _) => offset,
                   },
                 ),
@@ -200,7 +195,7 @@ List<MutationAction> _composeStartAnimation(
   bool isAnimating,
   Journey journey,
   Offset? scrollOffset, {
-  List<double>? velocity,
+  Offset? velocity,
 }) =>
     [
       if (isAnimating) AnimationCancel(),

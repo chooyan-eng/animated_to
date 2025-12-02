@@ -22,12 +22,9 @@ class _SpringPageState extends State<SpringPage> with TickerProviderStateMixin {
 
   // Get the current spring description
   SpringDescription get _currentSpring => switch (_springType) {
-        SpringType.defaultIOS =>
-          (Motion.smoothSpring() as SpringMotion).description,
-        SpringType.bouncy =>
-          (Motion.bouncySpring() as SpringMotion).description,
-        SpringType.snappy =>
-          (Motion.snappySpring() as SpringMotion).description,
+        SpringType.defaultIOS => CupertinoMotion.smooth().description,
+        SpringType.bouncy => CupertinoMotion.bouncy().description,
+        SpringType.snappy => CupertinoMotion.snappy().description,
         SpringType.gentle => SpringDescription(
             mass: 1,
             stiffness: 100,

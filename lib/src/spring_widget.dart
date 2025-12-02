@@ -3,13 +3,10 @@ import 'package:animated_to/src/action.dart';
 import 'package:animated_to/src/action_composer.dart';
 import 'package:animated_to/src/helper.dart';
 import 'package:animated_to/src/journey.dart';
-import 'package:animated_to/src/let.dart';
 import 'package:animated_to/src/size_maintainer.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart';
 import 'package:motor/motor.dart';
-import 'package:motor/src/controllers/poly_motion_controller.dart';
 
 /// "spring" version of [AnimatedTo].
 class SpringAnimatedTo extends StatefulWidget {
@@ -176,10 +173,11 @@ class _RenderAnimatedTo extends RenderProxyBox {
         _velocityBuilder = velocityBuilder,
         _verticalScrollOffset = verticalScrollOffset,
         _horizontalScrollOffset = horizontalScrollOffset {
-    _controller = PolyMotionController(
-      motion: Motion.customSpring(description),
+    _controller = MotionController<Offset>(
+      motion: SpringMotion(description, snapToEnd: true),
       vsync: _vsync,
-      initialValue: [0, 0],
+      converter: MotionConverter.offset,
+      initialValue: Offset.zero,
     )..addListener(_attemptPaint);
 
     // listen to scroll offset and update [_scrollOffset] of [_RenderAnimatedTo] when it changes.
@@ -192,7 +190,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
   }
 
   set description(SpringDescription value) {
-    _controller.motion = Motion.customSpring(value);
+    _controller.motion = SpringMotion(value, snapToEnd: true);
   }
 
   TickerProvider _vsync;
@@ -240,7 +238,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
   var _journey = Journey.tighten(Offset.zero);
 
   /// for animation
-  late PolyMotionController _controller;
+  late MotionController<Offset> _controller;
 
   /// for scroll management
   OffsetCache _cache = OffsetCache();
@@ -343,12 +341,13 @@ class _RenderAnimatedTo extends RenderProxyBox {
         case JourneyMutation(:final value):
           _journey = value;
         case AnimationStart(:final journey, :final velocity):
-          _controller.animateTo(
-            [journey.to.dx, journey.to.dy],
-            from: [journey.from.dx, journey.from.dy],
-            withVelocity: velocity ??
-                _velocityBuilder?.call().let((it) => [it.dx, it.dy]),
-          ).then((_) {
+          _controller
+              .animateTo(
+            journey.to,
+            from: journey.from,
+            withVelocity: velocity ?? _velocityBuilder?.call(),
+          )
+              .then((_) {
             _applyMutation([AnimationEnd()]);
           });
         case AnimationEnd():
