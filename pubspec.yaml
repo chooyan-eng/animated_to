@@ -11,7 +11,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  springster: ^0.4.0+1
+  motor: ^1.1.0
 
 dev_dependencies:
   flutter_test:

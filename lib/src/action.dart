@@ -17,7 +17,7 @@ sealed class AnimationMutation extends MutationAction {}
 
 final class AnimationStart extends AnimationMutation {
   final Journey journey;
-  final (double, double)? velocity;
+  final Offset? velocity;
 
   AnimationStart(this.journey, this.velocity);
 }
