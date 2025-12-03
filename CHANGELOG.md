@@ -1,3 +1,7 @@
+## [0.5.0] - 2025.12.3
+- `animated_to` now depends on `motor` instead of `springster`. Thank you [@timcreatedit](https://github.com/timcreatedit)
+- listeners attached to `horizontalController` and `verticalController` are now properly disposed when `AnimatedTo` is disposed. Thank you [@nappannda](https://github.com/nappannda)
+
 ## [0.4.0] - 2025.7.9
 - Support animation on horizontal `SingleChildScrollView`. 
 - `controller` is renamed to `verticalController`.

@@ -45,11 +45,19 @@ https://api.flutter.dev/flutter/physics/SpringSimulation-class.html
 
 This simulates its position transition based on the physical simulation, which make the animations smooth and natural.
 
-What you have to do is just switch `AnimatedTo.curve` into `AnimatedTo.spring` to activate spring simulation. You can also configure your own `SpringDescription` using `description` argument, or you can use pre-defined configuration using [@timcreatedit](https://github.com/timcreatedit)'s `springster` package. 
+What you have to do is just switch `AnimatedTo.curve` into `AnimatedTo.spring` to activate spring simulation. You can also configure your own `SpringDescription` using `description` argument, or you can use pre-defined configuration using [@timcreatedit](https://github.com/timcreatedit)'s `motor` package. 
 
-https://pub.dev/packages/springster
+https://pub.dev/packages/motor
 
-As `springster` is also used inside `animated_to` package(thanks @timcreatedit!), make sure you may have potential risk of dependency conflicts when directly depending on the package on your app side.
+```dart
+AnimatedTo.spring(
+  globalKey: _globalKey,
+  // you can retrieve SpringDescription from CupertinoMotion like below
+  description: CupertinoMotion.smooth().description,
+),
+```
+
+As `motor` is also used inside `animated_to` package(thanks @timcreatedit!), make sure you may have potential risk of dependency conflicts when directly depending on the package on your app side.
 
 ![spring demo](https://github.com/chooyan-eng/animated_to/raw/main/assets/animated_to_4.gif)
 
