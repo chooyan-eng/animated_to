@@ -71,11 +71,35 @@ As `motor` is also used inside `animated_to` package(thanks @timcreatedit!), mak
 
 ![slidingFrom demo](https://github.com/chooyan-eng/animated_to/raw/main/assets/animated_to_3.gif)
 
+## Hit Testing
+
+By default, `AnimatedTo` widgets can only receive gestures (taps, drags, etc.) at their **layout position**, not at their **animated position**. This is because Flutter's hit testing system checks widgets at their natural layout position, even though `AnimatedTo` visually paints them at a different location during animation.
+
+### AnimatedToContainer
+
+To enable gesture detection at the animated position, wrap your widget tree with `AnimatedToContainer`. This container intercepts hit tests and properly forwards them to animating widgets at their current animated positions.
+
+```dart
+void main() => runApp(
+  AnimatedToContainer( // Place near root
+    child: MaterialApp(
+      home: MyHomePage(),
+    ),
+  ),
+);
+```
+
+Note that `AnimatedToContainer` should be placed near the root of your widget tree to properly intercept hit tests for all descendant `AnimatedTo` widgets. In the example app, it wraps the entire `MaterialApp`.
+
+`AnimatedToContainer` is optional. If you don't need to detect gestures on your `AnimatedTo` widgets during animation, you can omit it completely. The animations will work perfectly fine without it.
+
 ## Limitations
 
-- `AnimatedTo` does NOT work when it is on Sliver-related widgets, such as `ListView`, and the animation happens _across_ slivers. It is because `RenderSliver`'s layout system is totally different from `RenderBox`'s and there is no way to detect the exact from/to. If the animation happened _inside_ a single sliver, it works.
+- `AnimatedTo` doesn't work when it is on Sliver-related widgets, such as `ListView`, and the animation happens _across_ slivers. It is because `RenderSliver`'s layout system is totally different from `RenderBox`'s and there is no way to detect the exact from/to. If the animation happened _inside_ a single sliver, it works.
 
 ![animation inside sliver](https://github.com/chooyan-eng/animated_to/raw/main/assets/animated_to_5.gif)
+
+- `AnimatedTo` can't be nested. It is because once both the ancestor and descendant `AnimatedTo` start the animation at the same time, they don't consider each animations, which result in moving toward the wrong position.
 
 ## All arguments
 

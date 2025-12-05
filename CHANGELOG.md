@@ -1,3 +1,6 @@
+## [0.6.0] - 2025.12.5
+- Add `AnimatedToContainer` to detect gesture to descendant `AnimatedTo`s during their animation. 
+
 ## [0.5.0] - 2025.12.3
 - `animated_to` now depends on `motor` instead of `springster`. Thank you [@timcreatedit](https://github.com/timcreatedit)
 - listeners attached to `horizontalController` and `verticalController` are now properly disposed when `AnimatedTo` is disposed. Thank you [@nappannda](https://github.com/nappannda)
