@@ -1,7 +1,6 @@
 import 'package:animated_to/animated_to.dart';
 import 'package:animated_to/src/action.dart';
 import 'package:animated_to/src/action_composer.dart';
-import 'package:animated_to/src/animated_to_container.dart';
 import 'package:animated_to/src/helper.dart';
 import 'package:animated_to/src/journey.dart';
 import 'package:animated_to/src/size_maintainer.dart';
@@ -251,7 +250,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   bool _dirtyLayout = false;
 
   /// Reference to the ancestor [AnimatedToContainer]'s render object
-  RenderAnimatedToContainer? _container;
+  final RenderAnimatedToContainer? _container;
 
   /// Current animated position in global coordinates
   Offset _currentAnimatedOffset = Offset.zero;
