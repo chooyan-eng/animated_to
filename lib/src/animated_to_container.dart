@@ -8,31 +8,29 @@ import 'package:flutter/widgets.dart';
 /// this by intercepting hit tests and checking animating descendants at their animated
 /// positions first.
 ///
+/// [AnimatedToContainer] should typically be placed near the root of the widget tree
+/// so that all the [AnimatedTo] widgets moving around the entire screen are covered.
+///
 /// Example:
 /// ```dart
 /// AnimatedToContainer(
-///   child: Column(
-///     children: [
-///       AnimatedTo.spring(
-///         globalKey: GlobalObjectKey(item1),
-///         child: MyWidget(),
-///       ),
-///       AnimatedTo.spring(
-///         globalKey: GlobalObjectKey(item2),
-///         child: MyWidget(),
-///       ),
-///     ],
+///   child: MaterialApp(
+///     home: Column(
+///       children: [
+///         AnimatedTo.spring(
+///           globalKey: GlobalObjectKey(item1),
+///           child: MyWidget(),
+///         ),
+///       ],
+///     ),
 ///   ),
 /// )
 /// ```
-class AnimatedToContainer extends StatefulWidget {
+class AnimatedToContainer extends SingleChildRenderObjectWidget {
   const AnimatedToContainer({
     super.key,
-    required this.child,
+    required super.child,
   });
-
-  /// The child widget that may contain [AnimatedTo] descendants.
-  final Widget child;
 
   /// Retrieves the nearest [RenderAnimatedToContainer] from the given [context].
   ///
@@ -41,29 +39,7 @@ class AnimatedToContainer extends StatefulWidget {
     return context.findAncestorRenderObjectOfType<RenderAnimatedToContainer>();
   }
 
-  @override
-  State<AnimatedToContainer> createState() => _AnimatedToContainerState();
-}
-
-class _AnimatedToContainerState extends State<AnimatedToContainer> {
-  final GlobalKey _renderKey = GlobalKey();
-
-  @override
-  Widget build(BuildContext context) {
-    return _AnimatedToContainerRenderWidget(
-      key: _renderKey,
-      child: widget.child,
-    );
-  }
-}
-
-/// RenderObjectWidget that creates [RenderAnimatedToContainer].
-class _AnimatedToContainerRenderWidget extends SingleChildRenderObjectWidget {
-  const _AnimatedToContainerRenderWidget({
-    super.key,
-    required super.child,
-  });
-
+  /// Creates a [RenderAnimatedToContainer] which performs custom hit testing.
   @override
   RenderAnimatedToContainer createRenderObject(BuildContext context) {
     return RenderAnimatedToContainer();
@@ -95,27 +71,27 @@ class RenderAnimatedToContainer extends RenderProxyBox {
     _animatingWidgets.remove(renderObject);
   }
 
+  /// Performs hit testing to currently animating widgets first.
+  /// If none are hit, falls back to normal hit testing.
+  ///
+  /// Note that this hit testing is z-order agnostic, which means it may
+  /// report a hit on a widget that is visually behind another widget.
+  ///
+  /// TODO(chooyan-eng): consider z-order, but how?
   @override
   bool hitTest(BoxHitTestResult result, {required Offset position}) {
-    // First, check animating widgets at their animated positions
     for (final animatingWidget in _animatingWidgets) {
-      // Get current animated state from the widget
       final animatedOffset = animatingWidget.currentAnimatedOffset;
-      final size = animatingWidget.size;
-
-      // Convert global animated position to local coordinates
-      final localPosition = animatedOffset;
-
-      // Check if hit position is within the animated bounds
-      final hitRect = localPosition & size;
-      if (hitRect.contains(position)) {
-        // Transform hit position to the widget's coordinate space
-        final childPosition = position - localPosition;
-
-        // Perform hit test on the animating widget
-        if (animatingWidget.hitTest(result, position: childPosition)) {
-          return true; // First hit wins, stop checking
-        }
+      final isHit = result.addWithPaintOffset(
+        offset: animatedOffset,
+        position: position,
+        hitTest: (BoxHitTestResult result, Offset transformed) {
+          assert(transformed == position - animatedOffset);
+          return animatingWidget.hitTest(result, position: transformed);
+        },
+      );
+      if (isHit) {
+        return true;
       }
     }
 
