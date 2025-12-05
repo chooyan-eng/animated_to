@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:animated_to/animated_to.dart';
 import 'package:example/draggable_page.dart';
 import 'package:example/graph_page.dart';
+import 'package:example/hit_test_page.dart';
 import 'package:example/horizontal_scrollable_page.dart';
 import 'package:example/list_switch_page.dart';
 import 'package:example/listview_page.dart';
@@ -13,7 +14,7 @@ import 'package:example/todo_cards_page.dart';
 import 'package:example/two_lines_page.dart';
 import 'package:flutter/material.dart';
 
-void main() => runApp(const MyApp());
+void main() => runApp(AnimatedToContainer(child: const MyApp()));
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -173,6 +174,18 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) => const SimpleDemoPage(),
+                      ),
+                    );
+                  },
+                  controller: _drawerScrollController,
+                ),
+                _DrawerMenuItem(
+                  title: 'Hit Test Demo',
+                  vsync: this,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const HitTestPage(),
                       ),
                     );
                   },

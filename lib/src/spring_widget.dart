@@ -1,6 +1,7 @@
 import 'package:animated_to/animated_to.dart';
 import 'package:animated_to/src/action.dart';
 import 'package:animated_to/src/action_composer.dart';
+import 'package:animated_to/src/animated_to_container.dart';
 import 'package:animated_to/src/helper.dart';
 import 'package:animated_to/src/journey.dart';
 import 'package:animated_to/src/size_maintainer.dart';
@@ -130,6 +131,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
       verticalController: verticalController,
       horizontalController: horizontalController,
       velocityBuilder: velocityBuilder,
+      container: AnimatedToContainer.of(context),
     );
   }
 
@@ -150,7 +152,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
 }
 
 /// [RenderObject] implementation for [SpringAnimatedTo].
-class _RenderAnimatedTo extends RenderProxyBox {
+class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   _RenderAnimatedTo({
     required SpringDescription description,
     required TickerProvider vsync,
@@ -163,6 +165,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
     Offset Function()? velocityBuilder,
     double? verticalScrollOffset,
     double? horizontalScrollOffset,
+    RenderAnimatedToContainer? container,
   })  : _vsync = vsync,
         _appearingFrom = appearingFrom,
         _slidingFrom = slidingFrom,
@@ -172,7 +175,8 @@ class _RenderAnimatedTo extends RenderProxyBox {
         _horizontalController = horizontalController,
         _velocityBuilder = velocityBuilder,
         _verticalScrollOffset = verticalScrollOffset,
-        _horizontalScrollOffset = horizontalScrollOffset {
+        _horizontalScrollOffset = horizontalScrollOffset,
+        _container = container {
     _controller = MotionController<Offset>(
       motion: SpringMotion(description, snapToEnd: true),
       vsync: _vsync,
@@ -245,6 +249,16 @@ class _RenderAnimatedTo extends RenderProxyBox {
 
   /// a flag to indicate the [paint] phase is right after [layout] phase.
   bool _dirtyLayout = false;
+
+  /// Reference to the ancestor [AnimatedToContainer]'s render object
+  RenderAnimatedToContainer? _container;
+
+  /// Current animated position in global coordinates
+  Offset _currentAnimatedOffset = Offset.zero;
+
+  /// Implementation of [RenderAnimatedTo.currentAnimatedOffset]
+  @override
+  Offset get currentAnimatedOffset => _currentAnimatedOffset;
 
   ScrollController? _verticalController;
   set verticalController(ScrollController? value) {
@@ -341,6 +355,8 @@ class _RenderAnimatedTo extends RenderProxyBox {
         case JourneyMutation(:final value):
           _journey = value;
         case AnimationStart(:final journey, :final velocity):
+          // Register with container when animation starts
+          _container?.registerAnimatingWidget(this);
           _controller
               .animateTo(
             journey.to,
@@ -351,11 +367,17 @@ class _RenderAnimatedTo extends RenderProxyBox {
             _applyMutation([AnimationEnd()]);
           });
         case AnimationEnd():
+          // Unregister from container when animation ends
+          _container?.unregisterAnimatingWidget(this);
           _onEnd?.call(AnimationEndCause.completed);
         case AnimationCancel():
+          // Unregister from container when animation is cancelled
+          _container?.unregisterAnimatingWidget(this);
           _onEnd?.call(AnimationEndCause.interrupted);
         case PaintChild(:final offset, :final context):
           assert(context != null, 'context is required');
+          // Update current animated position in global coordinates
+          _currentAnimatedOffset = offset;
           context!.paintChild(child!, offset);
         case OffsetCacheMutation(
             scroll: final scrollOffset,
@@ -387,6 +409,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
       _horizontalController!.removeListener(_horizontalControllerListener);
       _horizontalController = null;
     }
+    _container?.unregisterAnimatingWidget(this);
     super.dispose();
   }
 
