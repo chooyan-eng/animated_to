@@ -377,7 +377,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
         case PaintChild(:final offset, :final context):
           assert(context != null, 'context is required');
           // Update current animated position in global coordinates
-          _currentAnimatedOffset = localToGlobal(offset);
+          _currentAnimatedOffset = offset;
           context!.paintChild(child!, offset);
         case OffsetCacheMutation(
             scroll: final scrollOffset,
@@ -409,6 +409,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
       _horizontalController!.removeListener(_horizontalControllerListener);
       _horizontalController = null;
     }
+    _container?.unregisterAnimatingWidget(this);
     super.dispose();
   }
 

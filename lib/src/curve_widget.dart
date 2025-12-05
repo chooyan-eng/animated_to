@@ -419,6 +419,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
       _horizontalController!.removeListener(_horizontalControllerListener);
       _horizontalController = null;
     }
+    _container?.unregisterAnimatingWidget(this);
     super.dispose();
   }
 
