@@ -1,5 +1,6 @@
 import 'package:animated_to/src/action.dart';
 import 'package:animated_to/src/action_composer.dart';
+import 'package:animated_to/src/animated_to_container.dart';
 import 'package:animated_to/src/helper.dart';
 import 'package:animated_to/src/journey.dart';
 import 'package:animated_to/src/size_maintainer.dart';
@@ -126,6 +127,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
       onEnd: onEnd,
       verticalController: verticalController,
       horizontalController: horizontalController,
+      container: AnimatedToContainer.of(context),
     );
   }
 
@@ -146,7 +148,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
 }
 
 /// [RenderObject] implementation for [CurveAnimatedTo].
-class _RenderAnimatedTo extends RenderProxyBox {
+class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   _RenderAnimatedTo({
     required Duration duration,
     required Curve curve,
@@ -157,6 +159,7 @@ class _RenderAnimatedTo extends RenderProxyBox {
     void Function(AnimationEndCause cause)? onEnd,
     ScrollController? verticalController,
     ScrollController? horizontalController,
+    RenderAnimatedToContainer? container,
   })  : _duration = duration,
         _curve = curve,
         _vsync = vsync,
@@ -165,7 +168,8 @@ class _RenderAnimatedTo extends RenderProxyBox {
         _enabled = enabled,
         _onEnd = onEnd,
         _verticalController = verticalController,
-        _horizontalController = horizontalController {
+        _horizontalController = horizontalController,
+        _container = container {
     // listen to scroll offset and update [_scrollOffset] of [_RenderAnimatedTo] when it changes.
     if (verticalController != null) {
       verticalController.addListener(_verticalControllerListener);
@@ -233,6 +237,16 @@ class _RenderAnimatedTo extends RenderProxyBox {
 
   /// a flag to indicate the [paint] phase is right after [layout] phase.
   bool _dirtyLayout = false;
+
+  /// Reference to the ancestor [AnimatedToContainer]'s render object
+  RenderAnimatedToContainer? _container;
+
+  /// Current animated position in global coordinates
+  Offset _currentAnimatedOffset = Offset.zero;
+
+  /// Implementation of [RenderAnimatedTo.currentAnimatedOffset]
+  @override
+  Offset get currentAnimatedOffset => _currentAnimatedOffset;
 
   ScrollController? _verticalController;
   set verticalController(ScrollController? value) {
@@ -330,6 +344,8 @@ class _RenderAnimatedTo extends RenderProxyBox {
         case JourneyMutation(:final value):
           _journey = value;
         case AnimationStart(:final journey):
+          // Register with container when animation starts
+          _container?.registerAnimatingWidget(this);
           _controller = AnimationController(
             vsync: _vsync,
             duration: _duration,
@@ -353,12 +369,16 @@ class _RenderAnimatedTo extends RenderProxyBox {
             _applyMutation([AnimationEnd()]);
           });
         case AnimationEnd():
+          // Unregister from container when animation ends
+          _container?.unregisterAnimatingWidget(this);
           _onEnd?.call(AnimationEndCause.completed);
           _controller?.removeListener(_attemptPaint);
           _controller?.dispose();
           _controller = null;
           _animation = null;
         case AnimationCancel():
+          // Unregister from container when animation is cancelled
+          _container?.unregisterAnimatingWidget(this);
           _onEnd?.call(AnimationEndCause.interrupted);
           _controller?.removeListener(_attemptPaint);
           _controller?.dispose();
@@ -366,6 +386,8 @@ class _RenderAnimatedTo extends RenderProxyBox {
           _animation = null;
         case PaintChild(:final offset, :final context):
           assert(context != null, 'context is required');
+          // Update current animated position in global coordinates
+          _currentAnimatedOffset = offset;
           context!.paintChild(child!, offset);
         case OffsetCacheMutation(
             scroll: final scrollOffset,
