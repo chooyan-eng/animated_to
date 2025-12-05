@@ -1,3 +1,6 @@
+## [0.6.1] - 2025.12.5
+- Fixed tiny lint issues.
+
 ## [0.6.0] - 2025.12.5
 - Add `AnimatedToContainer` to detect gesture to descendant `AnimatedTo`s during their animation. 
 
