@@ -239,7 +239,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   bool _dirtyLayout = false;
 
   /// Reference to the ancestor [AnimatedToContainer]'s render object
-  RenderAnimatedToContainer? _container;
+  final RenderAnimatedToContainer? _container;
 
   /// Current animated position in global coordinates
   Offset _currentAnimatedOffset = Offset.zero;
