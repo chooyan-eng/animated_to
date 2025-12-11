@@ -15,6 +15,8 @@ class Journey {
     );
   }
 
+  Offset? get vectorTo => from == to ? null : to - from;
+
   /// The start position of the animation.
   final Offset from;
 

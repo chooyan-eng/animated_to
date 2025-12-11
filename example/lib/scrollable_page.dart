@@ -20,7 +20,7 @@ class _ScrollablePageState extends State<ScrollablePage>
   void initState() {
     super.initState();
     // start automatically
-    Timer(const Duration(milliseconds: 100), () {
+    Timer(const Duration(milliseconds: 800), () {
       setState(() {
         _isLeft = !_isLeft;
       });
@@ -81,14 +81,16 @@ class _ScrollablePageState extends State<ScrollablePage>
                             curve: Curves.easeInOutCubic,
                             globalKey: const GlobalObjectKey('afterImage'),
                             onEnd: (cause) {
-                              WidgetsBinding.instance
-                                  .addPostFrameCallback((timeStamp) {
-                                if (mounted) {
-                                  setState(() {
-                                    _isLeft = !_isLeft;
-                                  });
-                                }
-                              });
+                              if (cause == AnimationEndCause.completed) {
+                                WidgetsBinding.instance
+                                    .addPostFrameCallback((timeStamp) {
+                                  if (mounted) {
+                                    setState(() {
+                                      _isLeft = !_isLeft;
+                                    });
+                                  }
+                                });
+                              }
                             },
                             child: _Cube(alpha: 255, index: -1),
                           ),

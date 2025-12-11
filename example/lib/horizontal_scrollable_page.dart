@@ -21,7 +21,7 @@ class _HorizontalScrollablePageState extends State<HorizontalScrollablePage>
   void initState() {
     super.initState();
     // start automatically
-    Timer(const Duration(milliseconds: 100), () {
+    Timer(const Duration(milliseconds: 800), () {
       setState(() {
         _isTop = !_isTop;
       });

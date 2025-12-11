@@ -81,7 +81,7 @@ class RenderAnimatedToContainer extends RenderProxyBox {
   @override
   bool hitTest(BoxHitTestResult result, {required Offset position}) {
     for (final animatingWidget in _animatingWidgets) {
-      final animatedOffset = animatingWidget.currentAnimatedOffset;
+      final animatedOffset = animatingWidget.currentAnimatedOffset!;
       final isHit = result.addWithPaintOffset(
         offset: animatedOffset,
         position: position,
@@ -105,5 +105,8 @@ class RenderAnimatedToContainer extends RenderProxyBox {
 /// This is implemented by both spring and curve versions of [RenderAnimatedTo].
 abstract class RenderAnimatedTo extends RenderProxyBox {
   /// The current animated position in global coordinates.
-  Offset get currentAnimatedOffset;
+  Offset? get currentAnimatedOffset;
+
+  /// The offset of this render object in global coordinates.
+  Offset? get globalOffset;
 }

@@ -37,13 +37,15 @@ final class PaintChild extends AnimationMutation {
 }
 
 class OffsetCacheMutation extends MutationAction {
-  final Offset? scroll;
-  final Offset? scrollOriginal;
-  final Offset? last;
+  final Offset? startOffset;
+  final Offset? lastOffset;
+  final Offset? lastGlobalOffset;
+  final Offset? lastAncestorGlobalOffset;
 
   OffsetCacheMutation({
-    this.scroll,
-    this.scrollOriginal,
-    this.last,
+    this.startOffset,
+    this.lastOffset,
+    this.lastGlobalOffset,
+    this.lastAncestorGlobalOffset,
   });
 }

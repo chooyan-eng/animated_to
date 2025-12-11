@@ -7,6 +7,7 @@ import 'package:example/hit_test_page.dart';
 import 'package:example/horizontal_scrollable_page.dart';
 import 'package:example/list_switch_page.dart';
 import 'package:example/listview_page.dart';
+import 'package:example/nested_animated_to_page.dart';
 import 'package:example/scrollable_page.dart';
 import 'package:example/simple_demo_page.dart';
 import 'package:example/spring_page.dart';
@@ -14,7 +15,7 @@ import 'package:example/todo_cards_page.dart';
 import 'package:example/two_lines_page.dart';
 import 'package:flutter/material.dart';
 
-void main() => runApp(AnimatedToContainer(child: const MyApp()));
+void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -186,6 +187,18 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) => const HitTestPage(),
+                      ),
+                    );
+                  },
+                  controller: _drawerScrollController,
+                ),
+                _DrawerMenuItem(
+                  title: 'Nested AnimatedTo',
+                  vsync: this,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const NestedAnimatedToPage(),
                       ),
                     );
                   },
