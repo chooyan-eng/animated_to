@@ -99,8 +99,6 @@ Note that `AnimatedToContainer` should be placed near the root of your widget tr
 
 ![animation inside sliver](https://github.com/chooyan-eng/animated_to/raw/main/assets/animated_to_5.gif)
 
-- `AnimatedTo` can't be nested. It is because once both the ancestor and descendant `AnimatedTo` start the animation at the same time, they don't consider each animations, which result in moving toward the wrong position.
-
 ## All arguments
 
 | Argument | Type | Description |
