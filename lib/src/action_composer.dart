@@ -6,12 +6,11 @@ import 'package:flutter/widgets.dart';
 import 'package:motor/motor.dart';
 
 List<MutationAction> composeDisabled(
-  bool? isAnimating,
+  bool isAnimating,
   Offset offset,
 ) =>
     [
-      if (isAnimating != null) isAnimating ? AnimationCancel() : AnimationEnd(),
-      JourneyMutation(Journey.tighten(offset)),
+      isAnimating ? AnimationCancel() : AnimationEnd(),
       PaintChild.requireContext(offset),
     ];
 
@@ -19,21 +18,22 @@ List<MutationAction> composeFirstFrame(
   Offset? appearingFrom,
   Offset? slidingFrom,
   Offset offset,
-  Offset scrollOffset,
 ) =>
     switch ((appearingFrom, slidingFrom)) {
       (final Offset from, null) =>
         Journey(from: from, to: offset).let((journey) => [
-              JourneyMutation(journey),
-              AnimationStart(journey, null),
-              OffsetCacheMutation(scrollOriginal: scrollOffset),
+              ..._composeStartAnimation(
+                false,
+                journey,
+              ),
               PaintChild.requireContext(journey.from),
             ])!,
       (null, final Offset from) =>
         Journey(from: offset + from, to: offset).let((journey) => [
-              JourneyMutation(journey),
-              AnimationStart(journey, null),
-              OffsetCacheMutation(scrollOriginal: scrollOffset),
+              ..._composeStartAnimation(
+                false,
+                journey,
+              ),
               PaintChild.requireContext(journey.from),
             ])!,
       (null, null) => [
@@ -47,159 +47,136 @@ List<MutationAction> composeFirstFrame(
         ),
     };
 
-List<MutationAction> composeAnimation(
-  AnimationController? controller,
-  Offset? animationValue,
-  Offset offset,
-  Offset scrollOffset,
-  Journey journey,
-  OffsetCache cache,
-  bool dirtyLayout,
-) =>
-    [
-      OffsetCacheMutation(last: offset, scroll: scrollOffset),
-      ...switch ((
-        isScrolling: cache.scrollLast != scrollOffset,
-        isAnimating: controller?.isAnimating == true,
-      )) {
-        (isScrolling: true, isAnimating: true) => [
+List<MutationAction> composeAnimation({
+  required Offset? animationValue,
+  required Offset offset,
+  required Offset globalOffset,
+  required Offset? ancestorGlobalOffset,
+  required OffsetCache cache,
+}) =>
+    hasChangedPosition(
+      lastGlobalOffset: cache.lastGlobalOffset ?? globalOffset,
+      currentGlobalOffset: globalOffset,
+      lastAncestorGlobalOffset:
+          cache.lastAncestorGlobalOffset ?? ancestorGlobalOffset,
+      currentAncestorGlobalOffset: ancestorGlobalOffset,
+    ).let(
+      (hasChangedPosition) => [
+        ...switch ((
+          isAnimating: animationValue != null,
+          hasPositionChanged: hasChangedPosition,
+        )) {
+          (isAnimating: false, hasPositionChanged: false) => [
+              PaintChild.requireContext(offset),
+            ],
+          (isAnimating: false, hasPositionChanged: true) =>
             // cache scroll offset and position considering scroll gap
             // regardless of whether animating now or not.
-            JourneyMutation(Journey.tighten(offset)),
-            PaintChild.requireContext(
-              animationValue! + cache.scrollOriginal! - scrollOffset,
-            ),
-          ],
-        (isScrolling: true, isAnimating: false) => (
-            scrollGap: (cache.scrollLast ?? Offset.zero) - scrollOffset,
-            positionGap: offset - (cache.last ?? offset)
-          ).let((it) => [
-                // cache scroll offset and position considering scroll gap
-                // regardless of whether animating now or not.
-                ...dirtyLayout
-                    ? Journey(from: journey.to, to: offset).let((journey) => [
-                          ..._composeStartAnimation(
-                            controller?.isAnimating == true,
-                            journey,
-                            scrollOffset,
-                          ),
-                          PaintChild.requireContext(journey.from),
-                        ])!
-                    : [
-                        JourneyMutation(Journey.tighten(offset)),
-                        PaintChild.requireContext(offset),
-                      ],
-              ])!,
-        (isScrolling: false, :final isAnimating) => journey.to != offset
-            ? Journey(
-                from: isAnimating
-                    ? animationValue! -
-                        (scrollOffset - (cache.scrollOriginal ?? Offset.zero))
-                    : journey.to,
-                to: offset,
-              ).let((journey) => [
+            Journey(from: cache.lastOffset!, to: offset).let((journey) => [
+                  ..._composeStartAnimation(
+                    false,
+                    journey,
+                  ),
+                  PaintChild.requireContext(journey.from),
+                ])!,
+          (isAnimating: true, hasPositionChanged: false) => [
+              PaintChild.requireContext(
+                  animationValue! + (offset - cache.startOffset!)),
+            ],
+          (isAnimating: true, hasPositionChanged: true) => Journey(
+              from: animationValue! + (cache.lastOffset! - cache.startOffset!),
+              to: offset,
+            ).let((journey) => [
                   // if [position] is updated during animation,
                   // start another animation from current position
                   ..._composeStartAnimation(
-                    controller?.isAnimating == true,
+                    true,
                     journey,
-                    scrollOffset,
                   ),
                   PaintChild.requireContext(journey.from),
                 ])!
-            : [
-                PaintChild.requireContext(
-                  switch ((animationValue, scrollOffset)) {
-                    (final Offset value, final Offset offset) =>
-                      value + (cache.scrollOriginal! - offset),
-                    _ => offset,
-                  },
-                ),
-              ],
-      },
-    ];
+        },
+      ],
+    )!;
 
-List<MutationAction> composeSpringAnimation(
-  MotionController<Offset> controller,
-  Offset offset,
-  Offset scrollOffset,
-  Journey journey,
-  OffsetCache cache,
-  bool dirtyLayout,
-) =>
-    [
-      OffsetCacheMutation(last: offset, scroll: scrollOffset),
-      ...switch ((
-        isScrolling: cache.scrollLast != scrollOffset,
-        isAnimating: controller.isAnimating,
-      )) {
-        (isScrolling: true, isAnimating: true) => [
+bool hasChangedPosition({
+  required Offset lastGlobalOffset,
+  required Offset currentGlobalOffset,
+  Offset? lastAncestorGlobalOffset,
+  Offset? currentAncestorGlobalOffset,
+}) {
+  final ancestorOffsetGap = (currentAncestorGlobalOffset ?? Offset.zero) -
+      (lastAncestorGlobalOffset ?? Offset.zero);
+  final selfOffsetGap = currentGlobalOffset - lastGlobalOffset;
+  final gap = (selfOffsetGap - ancestorOffsetGap).abs;
+  return gap.dx.toInt() != 0 || gap.dy.toInt() != 0;
+}
+
+extension on Offset {
+  Offset get abs => Offset(dx.abs(), dy.abs());
+}
+
+List<MutationAction> composeSpringAnimation({
+  required MotionController<Offset> controller,
+  required Offset offset,
+  required Offset globalOffset,
+  required Offset? ancestorGlobalOffset,
+  required OffsetCache cache,
+}) =>
+    hasChangedPosition(
+      lastGlobalOffset: cache.lastGlobalOffset ?? globalOffset,
+      currentGlobalOffset: globalOffset,
+      lastAncestorGlobalOffset:
+          cache.lastAncestorGlobalOffset ?? ancestorGlobalOffset,
+      currentAncestorGlobalOffset: ancestorGlobalOffset,
+    ).let(
+      (hasChangedPosition) => [
+        ...switch ((
+          isAnimating: controller.isAnimating,
+          hasPositionChanged: hasChangedPosition,
+        )) {
+          (isAnimating: false, hasPositionChanged: false) => [
+              PaintChild.requireContext(offset),
+            ],
+          (isAnimating: false, hasPositionChanged: true) =>
             // cache scroll offset and position considering scroll gap
             // regardless of whether animating now or not.
-            JourneyMutation(Journey.tighten(offset)),
-            PaintChild.requireContext(
-              controller.value + cache.scrollOriginal! - scrollOffset,
-            ),
-          ],
-        (isScrolling: true, isAnimating: false) => (
-            scrollGap: (cache.scrollLast ?? Offset.zero) - scrollOffset,
-            positionGap: offset - (cache.last ?? offset)
-          ).let((it) => [
-                // cache scroll offset and position considering scroll gap
-                // regardless of whether animating now or not.
-                ...dirtyLayout
-                    ? Journey(from: journey.to, to: offset).let((journey) => [
-                          ..._composeStartAnimation(
-                            controller.isAnimating,
-                            journey,
-                            scrollOffset,
-                          ),
-                          PaintChild.requireContext(journey.from),
-                        ])!
-                    : [
-                        JourneyMutation(Journey.tighten(offset)),
-                        PaintChild.requireContext(offset),
-                      ],
-              ])!,
-        (isScrolling: false, :final isAnimating) => journey.to != offset
-            ? Journey(
-                from: isAnimating
-                    ? controller.value -
-                        (scrollOffset - (cache.scrollOriginal ?? Offset.zero))
-                    : journey.to,
-                to: offset,
-              ).let((journey) => [
+            Journey(from: cache.lastOffset!, to: offset).let((journey) => [
+                  ..._composeStartAnimation(
+                    false,
+                    journey,
+                  ),
+                  PaintChild.requireContext(journey.from),
+                ])!,
+          (isAnimating: true, hasPositionChanged: false) => [
+              PaintChild.requireContext(
+                  controller.value + (offset - cache.startOffset!)),
+            ],
+          (isAnimating: true, hasPositionChanged: true) => Journey(
+              from: controller.value + (cache.lastOffset! - cache.startOffset!),
+              to: offset,
+            ).let((journey) => [
                   // if [position] is updated during animation,
                   // start another animation from current position
                   ..._composeStartAnimation(
-                    controller.isAnimating,
+                    true,
                     journey,
-                    scrollOffset,
+                    velocity: controller.velocity,
                   ),
                   PaintChild.requireContext(journey.from),
                 ])!
-            : [
-                PaintChild.requireContext(
-                  switch ((controller.isAnimating, scrollOffset)) {
-                    (true, final Offset offset) =>
-                      controller.value + cache.scrollOriginal! - offset,
-                    (true, Offset.zero) => controller.value,
-                    (false, _) => offset,
-                  },
-                ),
-              ],
-      },
-    ];
+        },
+      ],
+    )!;
 
 List<MutationAction> _composeStartAnimation(
   bool isAnimating,
-  Journey journey,
-  Offset? scrollOffset, {
+  Journey journey, {
   Offset? velocity,
 }) =>
     [
       if (isAnimating) AnimationCancel(),
       JourneyMutation(journey),
+      OffsetCacheMutation(startOffset: journey.to),
       AnimationStart(journey, velocity),
-      OffsetCacheMutation(scrollOriginal: scrollOffset),
     ];

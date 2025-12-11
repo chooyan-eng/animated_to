@@ -77,92 +77,94 @@ class _HitTestPageState extends State<HitTestPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.grey[850],
-        foregroundColor: Colors.white,
-        title: const Text(
-          'Hit Test Demo',
-          style: TextStyle(color: Colors.white),
+    return AnimatedToContainer(
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.grey[850],
+          foregroundColor: Colors.white,
+          title: const Text(
+            'Hit Test Demo',
+            style: TextStyle(color: Colors.white),
+          ),
         ),
-      ),
-      backgroundColor: Colors.grey[900],
-      body: Stack(
-        children: [
-          // Info panel
-          Positioned(
-            top: 20,
-            left: 20,
-            right: 20,
-            child: Card(
-              color: Colors.grey[800],
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Tap Counter: $_tapCount',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+        backgroundColor: Colors.grey[900],
+        body: Stack(
+          children: [
+            // Info panel
+            Positioned(
+              top: 20,
+              left: 20,
+              right: 20,
+              child: Card(
+                color: Colors.grey[800],
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tap Counter: $_tapCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Try tapping the moving object!',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Try tapping the moving object!',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'AnimatedToContainer enables hit testing during animation.',
-                      style: TextStyle(
-                        color: Colors.white54,
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
+                      const SizedBox(height: 4),
+                      const Text(
+                        'AnimatedToContainer enables hit testing during animation.',
+                        style: TextStyle(
+                          color: Colors.white54,
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          // Animated tappable object
-          Align(
-            alignment: _currentAlignment,
-            child: Padding(
-              padding: const EdgeInsets.all(60),
-              child: AnimatedTo.curve(
-                duration: const Duration(seconds: 3),
-                globalKey: _objectKey,
-                child: GestureDetector(
-                  onTap: _handleTap,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: _currentColor,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: _currentColor.withValues(alpha: 150),
-                          blurRadius: 20,
-                          spreadRadius: 5,
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        '$_tapCount',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
+            // Animated tappable object
+            Align(
+              alignment: _currentAlignment,
+              child: Padding(
+                padding: const EdgeInsets.all(60),
+                child: AnimatedTo.curve(
+                  duration: const Duration(seconds: 3),
+                  globalKey: _objectKey,
+                  child: GestureDetector(
+                    onTap: _handleTap,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: _currentColor,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: _currentColor.withValues(alpha: 150),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$_tapCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -170,8 +172,8 @@ class _HitTestPageState extends State<HitTestPage>
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

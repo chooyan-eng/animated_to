@@ -128,6 +128,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
       verticalController: verticalController,
       horizontalController: horizontalController,
       container: AnimatedToContainer.of(context),
+      ancestor: context.findAncestorRenderObjectOfType<RenderAnimatedTo>(),
     );
   }
 
@@ -160,6 +161,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
     ScrollController? verticalController,
     ScrollController? horizontalController,
     RenderAnimatedToContainer? container,
+    RenderAnimatedTo? ancestor,
   })  : _duration = duration,
         _curve = curve,
         _vsync = vsync,
@@ -169,7 +171,8 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
         _onEnd = onEnd,
         _verticalController = verticalController,
         _horizontalController = horizontalController,
-        _container = container {
+        _container = container,
+        _ancestor = ancestor {
     // listen to scroll offset and update [_scrollOffset] of [_RenderAnimatedTo] when it changes.
     if (verticalController != null) {
       verticalController.addListener(_verticalControllerListener);
@@ -235,18 +238,21 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   /// cache of [Offset]s for calculation
   var _cache = OffsetCache();
 
-  /// a flag to indicate the [paint] phase is right after [layout] phase.
-  bool _dirtyLayout = false;
-
   /// Reference to the ancestor [AnimatedToContainer]'s render object
   final RenderAnimatedToContainer? _container;
+
+  /// Reference to the ancestor [RenderAnimatedTo] if any.
+  final RenderAnimatedTo? _ancestor;
 
   /// Current animated position in global coordinates
   Offset _currentAnimatedOffset = Offset.zero;
 
   /// Implementation of [RenderAnimatedTo.currentAnimatedOffset]
   @override
-  Offset get currentAnimatedOffset => _currentAnimatedOffset;
+  Offset? get currentAnimatedOffset => _currentAnimatedOffset;
+
+  @override
+  Offset? get globalOffset => localToGlobal(Offset.zero);
 
   ScrollController? _verticalController;
   set verticalController(ScrollController? value) {
@@ -284,14 +290,6 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
     _horizontalController = value;
   }
 
-  /// to distinguish the [offset] updates in [paint] phase is caused by [layout] or not,
-  /// especially during scrolling, [_dirtyLayout] is set true when [layout] is called.
-  @override
-  void layout(Constraints constraints, {bool parentUsesSize = false}) {
-    _dirtyLayout = true;
-    super.layout(constraints, parentUsesSize: parentUsesSize);
-  }
-
   /// [offset] is the position where [child] should be painted if no animation is running.
   /// [_RenderAnimatedTo] prevents the [child] from being painted at [offset],
   /// and paints at animating position instead by calling [context.paintChild].
@@ -299,10 +297,20 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   /// note that [offset] also changes when scrolling on [SingleChildScrollView].
   @override
   void paint(PaintingContext context, Offset offset) {
-    // if disabled, just keep the position for the next chance to animate.
+    final globalOffset = localToGlobal(Offset(
+      _horizontalScrollOffset ?? 0,
+      _verticalScrollOffset ?? 0,
+    ));
+    final cacheMutation = OffsetCacheMutation(
+      lastOffset: offset,
+      lastGlobalOffset: globalOffset,
+      lastAncestorGlobalOffset: _ancestor?.globalOffset,
+    );
+
     final prioriActions = switch ((_enabled, _journey.isPreparing)) {
+      // if disabled, just keep the position for the next chance to animate.
       (false, _) => composeDisabled(
-          _controller?.isAnimating,
+          _controller?.isAnimating == true,
           offset,
         ),
       // if either of [_appearingFrom] or [_slidingFrom] is given,
@@ -311,7 +319,6 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
           _appearingFrom,
           _slidingFrom,
           offset,
-          Offset(_horizontalScrollOffset ?? 0.0, _verticalScrollOffset ?? 0.0),
         ),
       _ => null,
     };
@@ -319,22 +326,21 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
     // apply mutation and return if there are any actions to apply,
     // which means it's disabled or first frame.
     if (prioriActions != null) {
-      _applyMutation(prioriActions.provided(context));
+      _applyMutation([cacheMutation, ...prioriActions].contextPovided(context));
       return;
     }
 
     // Animation is now active, regardless of animating right now or not.
     final animationActions = composeAnimation(
-      _controller,
-      _animation?.value,
-      offset,
-      Offset(_horizontalScrollOffset ?? 0.0, _verticalScrollOffset ?? 0.0),
-      _journey,
-      _cache,
-      _dirtyLayout,
+      animationValue: _animation?.value,
+      offset: offset,
+      globalOffset: globalOffset,
+      ancestorGlobalOffset: _ancestor?.globalOffset,
+      cache: _cache,
     );
 
-    _applyMutation(animationActions.provided(context));
+    _applyMutation(
+        [cacheMutation, ...animationActions].contextPovided(context));
   }
 
   /// only method to apply mutation
@@ -390,18 +396,19 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
           _currentAnimatedOffset = offset;
           context!.paintChild(child!, offset);
         case OffsetCacheMutation(
-            scroll: final scrollOffset,
-            scrollOriginal: final scrollOriginal,
-            last: final lastOffset
+            :final startOffset,
+            :final lastOffset,
+            :final lastGlobalOffset,
+            :final lastAncestorGlobalOffset,
           ):
           _cache = _cache.copyWith(
-            scrollLast: scrollOffset,
-            scrollOriginal: scrollOriginal,
-            last: lastOffset,
+            startOffset: startOffset,
+            lastOffset: lastOffset,
+            lastGlobalOffset: lastGlobalOffset,
+            lastAncestorGlobalOffset: lastAncestorGlobalOffset,
           );
       }
     }
-    _dirtyLayout = false;
   }
 
   @override
