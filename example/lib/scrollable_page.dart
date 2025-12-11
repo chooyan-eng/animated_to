@@ -20,7 +20,7 @@ class _ScrollablePageState extends State<ScrollablePage>
   void initState() {
     super.initState();
     // start automatically
-    Timer(const Duration(milliseconds: 800), () {
+    Timer(const Duration(milliseconds: 100), () {
       setState(() {
         _isLeft = !_isLeft;
       });
@@ -29,82 +29,23 @@ class _ScrollablePageState extends State<ScrollablePage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.grey[850],
-        foregroundColor: Colors.white,
-        title: const Text(
-          'Scrollable Page',
-          style: TextStyle(color: Colors.white),
+    return AnimatedToContainer(
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.grey[850],
+          foregroundColor: Colors.white,
+          title: const Text(
+            'Scrollable Page',
+            style: TextStyle(color: Colors.white),
+          ),
         ),
-      ),
-      backgroundColor: Colors.black,
-      body: SingleChildScrollView(
-        controller: _scrollController,
-        child: Column(
-          children: [
-            const SizedBox(height: 62),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              height: 100,
-              decoration: BoxDecoration(
-                color: Colors.grey,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Center(
-                child: Text(
-                  'START',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                  ),
-                ),
-              ),
-            ),
-            Container(
-              width: double.infinity,
-              height: MediaQuery.sizeOf(context).height,
-              color: Colors.black,
-              child: Stack(
-                children: [
-                  Scaffold(
-                    backgroundColor: Colors.transparent,
-                    body: Stack(
-                      children: [
-                        Positioned(
-                          left: _isLeft ? 50 : null,
-                          right: _isLeft ? null : 50,
-                          top: MediaQuery.sizeOf(context).height / 2 - 50,
-                          child: AnimatedTo.curve(
-                            verticalController: _scrollController,
-                            duration: const Duration(seconds: 1),
-                            curve: Curves.easeInOutCubic,
-                            globalKey: const GlobalObjectKey('afterImage'),
-                            onEnd: (cause) {
-                              if (cause == AnimationEndCause.completed) {
-                                WidgetsBinding.instance
-                                    .addPostFrameCallback((timeStamp) {
-                                  if (mounted) {
-                                    setState(() {
-                                      _isLeft = !_isLeft;
-                                    });
-                                  }
-                                });
-                              }
-                            },
-                            child: _Cube(alpha: 255, index: -1),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 100),
-            Material(
-              color: Colors.black,
-              child: Container(
+        backgroundColor: Colors.black,
+        body: SingleChildScrollView(
+          controller: _scrollController,
+          child: Column(
+            children: [
+              const SizedBox(height: 62),
+              Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 height: 100,
                 decoration: BoxDecoration(
@@ -113,7 +54,7 @@ class _ScrollablePageState extends State<ScrollablePage>
                 ),
                 child: Center(
                   child: Text(
-                    'END',
+                    'START',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -121,9 +62,70 @@ class _ScrollablePageState extends State<ScrollablePage>
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 100),
-          ],
+              Container(
+                width: double.infinity,
+                height: MediaQuery.sizeOf(context).height,
+                color: Colors.black,
+                child: Stack(
+                  children: [
+                    Scaffold(
+                      backgroundColor: Colors.transparent,
+                      body: Stack(
+                        children: [
+                          Positioned(
+                            left: _isLeft ? 50 : null,
+                            right: _isLeft ? null : 50,
+                            top: MediaQuery.sizeOf(context).height / 2 - 50,
+                            child: AnimatedTo.curve(
+                              verticalController: _scrollController,
+                              duration: const Duration(seconds: 1),
+                              curve: Curves.easeInOutCubic,
+                              globalKey: const GlobalObjectKey('afterImage'),
+                              onEnd: (cause) {
+                                if (cause == AnimationEndCause.completed) {
+                                  WidgetsBinding.instance
+                                      .addPostFrameCallback((timeStamp) {
+                                    if (mounted) {
+                                      setState(() {
+                                        _isLeft = !_isLeft;
+                                      });
+                                    }
+                                  });
+                                }
+                              },
+                              child: _Cube(alpha: 255, index: -1),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 100),
+              Material(
+                color: Colors.black,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: Colors.grey,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'END',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 100),
+            ],
+          ),
         ),
       ),
     );

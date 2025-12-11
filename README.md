@@ -93,6 +93,27 @@ Note that `AnimatedToContainer` should be placed near the root of your widget tr
 
 `AnimatedToContainer` is optional. If you don't need to detect gestures on your `AnimatedTo` widgets during animation, you can omit it completely. The animations will work perfectly fine without it.
 
+In addition, `AnimatedToContainer` has another usage to keep accurate animation during transition animation, typically caused by `Navigator.push()`.
+
+Because the offset changes caused by navigation transition also affects the behavior of `AnimatedTo` by default, which results in unexpected animation you want to start before navigation transition ends, you can make `AnimatedTo` ignore the transition by wrapping the entire page widget, typically `Scaffold`, with `AnimatedToContainer`. 
+
+```dart
+@override
+Widget build(BuildContext context) {
+  return AnimatedToContainer(
+    child: Scaffold(
+      body: AnimatedTo.spring(
+        globalKey: _key,
+        slidingFrom: Offset(100, 100),
+        child: _YourWidget(),
+      ),
+    ),
+  )
+}
+```
+
+Note that `AnimatedToContainer` can be nested, so you don't have to remove the other `AnimatedToContainer` you placed at the root of the widget tree.
+
 ## Limitations
 
 - `AnimatedTo` doesn't work when it is on Sliver-related widgets, such as `ListView`, and the animation happens _across_ slivers. It is because `RenderSliver`'s layout system is totally different from `RenderBox`'s and there is no way to detect the exact from/to. If the animation happened _inside_ a single sliver, it works.

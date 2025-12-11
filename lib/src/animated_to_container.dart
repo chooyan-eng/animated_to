@@ -26,6 +26,11 @@ import 'package:flutter/widgets.dart';
 ///   ),
 /// )
 /// ```
+///
+/// Also, [AnimatedToContainer] is used when you want to start animation during the navigation transition.
+/// By wrapping the page widget, typically [Scaffold], with [AnimatedToContainer],
+/// this let [AnimatedTo] ignore the position changes caused by navigation transition,
+/// which makes the animation accurate.
 class AnimatedToContainer extends SingleChildRenderObjectWidget {
   const AnimatedToContainer({
     super.key,

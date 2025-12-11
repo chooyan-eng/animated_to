@@ -32,6 +32,10 @@ import 'package:flutter/material.dart';
 /// - [AnimatedTo.spring] for spring animation.
 ///
 /// Either way, the usage is the same, just wrapping whatever widget with [AnimatedTo].
+///
+/// If you want to start animation during the navigation transition, wrap the page widget,
+/// typically [Scaffold], with [AnimatedToContainer]. This let [AnimatedTo] ignore the
+/// position changes caused by navigation transition, which makes the animation accurate.
 class AnimatedTo extends StatelessWidget {
   const AnimatedTo._({
     required this.globalKey,

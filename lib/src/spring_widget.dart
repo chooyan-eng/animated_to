@@ -308,10 +308,12 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   /// note that [offset] also changes when scrolling on [SingleChildScrollView].
   @override
   void paint(PaintingContext context, Offset offset) {
-    final globalOffset = localToGlobal(Offset(
-      _horizontalScrollOffset ?? 0,
-      _verticalScrollOffset ?? 0,
-    ));
+    final globalOffset = localToGlobal(
+        Offset(
+          _horizontalScrollOffset ?? 0,
+          _verticalScrollOffset ?? 0,
+        ),
+        ancestor: _container);
     final cacheMutation = OffsetCacheMutation(
       lastOffset: offset,
       lastGlobalOffset: globalOffset,

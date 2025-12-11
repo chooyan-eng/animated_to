@@ -1,3 +1,6 @@
+## [0.7.1] - 2025.12.11
+- Fixed a bug of unexpected behavior during navigation transition.
+
 ## [0.7.0] - 2025.12.11
 - AnimatedTo now can be nested!
 - Fixed a bug of unexpected behavior when scrolling.
