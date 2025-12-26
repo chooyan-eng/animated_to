@@ -71,11 +71,15 @@ As `motor` is also used inside `animated_to` package(thanks @timcreatedit!), mak
 
 ![slidingFrom demo](https://github.com/chooyan-eng/animated_to/raw/main/assets/animated_to_3.gif)
 
-## Hit Testing
+## Hit Testing and Coordinate System
 
 By default, `AnimatedTo` widgets can only receive gestures (taps, drags, etc.) at their **layout position**, not at their **animated position**. This is because Flutter's hit testing system checks widgets at their natural layout position, even though `AnimatedTo` visually paints them at a different location during animation.
 
 ### AnimatedToBoundary
+
+`AnimatedToBoundary` serves two important purposes:
+
+#### 1. Enable Hit Testing During Animation
 
 To enable gesture detection at the animated position, wrap your widget tree with `AnimatedToBoundary`. This boundary intercepts hit tests and properly forwards them to animating widgets at their current animated positions.
 
@@ -89,13 +93,15 @@ void main() => runApp(
 );
 ```
 
-Note that `AnimatedToBoundary` should be placed near the root of your widget tree to properly intercept hit tests for all descendant `AnimatedTo` widgets. In the example app, it wraps the entire `MaterialApp`.
-
 `AnimatedToBoundary` is optional. If you don't need to detect gestures on your `AnimatedTo` widgets during animation, you can omit it completely. The animations will work perfectly fine without it.
 
-In addition, `AnimatedToBoundary` has another usage to keep accurate animation during transition animation, typically caused by `Navigator.push()`.
+#### 2. Establish Stable Coordinate Origin
 
-Because the offset changes caused by navigation transition also affects the behavior of `AnimatedTo` by default, which results in unexpected animation you want to start before navigation transition ends, you can make `AnimatedTo` ignore the transition by wrapping the entire page widget, typically `Scaffold`, with `AnimatedToBoundary`. 
+`AnimatedToBoundary` can be used to prevent `AnimatedTo` from unexpected behavior by clarifying the "origin" of the coordinate system. By wrapping a page widget (typically `Scaffold`) with `AnimatedToBoundary`, `AnimatedTo` is not affected by animations of the whole screen, such as `Navigator.push()`.
+
+Without this isolation, when you navigate to a new page, the entire screen slides (the navigation transition), and `AnimatedTo` would incorrectly interpret this screen movement as a position change. This causes unexpected animations when you want to start an animation during the navigation transition.
+
+By establishing a coordinate boundary, `AnimatedToBoundary` ensures that `AnimatedTo` only responds to position changes within that boundary, ignoring ancestor animations like page transitions.
 
 ```dart
 @override
@@ -112,7 +118,13 @@ Widget build(BuildContext context) {
 }
 ```
 
-Note that `AnimatedToBoundary` can be nested, so you don't have to remove the other `AnimatedToBoundary` you placed at the root of the widget tree.
+### Placement and Nesting
+
+`AnimatedToBoundary` should be placed:
+- Near the root of your widget tree for global hit testing coverage
+- Around individual page widgets to isolate navigation transition effects
+
+Note that `AnimatedToBoundary` can be nested, so you don't have to remove other `AnimatedToBoundary` widgets you placed at the root when adding a new one around a page.
 
 ## Limitations
 

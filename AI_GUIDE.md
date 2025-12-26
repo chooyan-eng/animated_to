@@ -368,12 +368,41 @@ AnimatedToBoundary(
 )
 ```
 
-**Purpose**: Enables hit testing for AnimatedTo widgets during animation and isolates navigation transition effects.
+**Purpose**: AnimatedToBoundary serves two essential purposes:
+
+1. **Enable Hit Testing During Animation**: Intercepts hit tests and forwards them to animating widgets at their current animated positions, allowing gestures (taps, drags, etc.) to work on moving widgets.
+
+2. **Establish Stable Coordinate Origin**: Acts as a boundary that defines the origin for coordinate calculations. This prevents AnimatedTo from being affected by ancestor animations such as whole-screen transitions (e.g., `Navigator.push()`/`pop()`).
+
+**Coordinate System Isolation**:
+
+When you wrap a page widget (typically `Scaffold`) with `AnimatedToBoundary`, the coordinate system becomes isolated from navigation transitions. Without this isolation:
+- During `Navigator.push()`, the entire screen slides
+- AnimatedTo interprets this screen movement as a position change
+- This causes unexpected animations when you want to start animations during page transitions
+
+By establishing a coordinate boundary, `AnimatedToBoundary` ensures AnimatedTo only responds to position changes within that boundary, ignoring ancestor animations.
 
 **Placement**: 
-- Near app root for global hit testing
-- Around individual pages to isolate navigation transitions
-- Can be nested
+- Near app root for global hit testing coverage
+- Around individual page widgets to isolate navigation transition effects
+- Can be nested (inner boundaries don't interfere with outer ones)
+
+**Example for Navigation Isolation**:
+```dart
+@override
+Widget build(BuildContext context) {
+  return AnimatedToBoundary(  // Isolates this page's coordinate system
+    child: Scaffold(
+      body: AnimatedTo.spring(
+        globalKey: _key,
+        slidingFrom: Offset(100, 0),  // Slides in correctly during navigation
+        child: YourWidget(),
+      ),
+    ),
+  );
+}
+```
 
 ## Common Patterns
 

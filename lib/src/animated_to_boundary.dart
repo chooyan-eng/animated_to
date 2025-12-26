@@ -1,17 +1,34 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-/// A boundary widget that enables hit testing for animating [AnimatedTo] descendants.
+/// A boundary widget that enables hit testing for animating [AnimatedTo] descendants
+/// and establishes a stable coordinate origin for position calculations.
+///
+/// ## Purpose 1: Hit Testing During Animation
 ///
 /// When [AnimatedTo] widgets are animating, they visually move to new positions but
 /// their hit test areas remain at their layout positions. [AnimatedToBoundary] solves
 /// this by intercepting hit tests and checking animating descendants at their animated
 /// positions first.
 ///
-/// [AnimatedToBoundary] should typically be placed near the root of the widget tree
-/// so that all the [AnimatedTo] widgets moving around the entire screen are covered.
+/// ## Purpose 2: Coordinate System Origin
 ///
-/// Example:
+/// [AnimatedToBoundary] establishes a boundary that serves as the origin for coordinate
+/// calculations. This prevents [AnimatedTo] from being affected by ancestor animations
+/// such as whole-screen transitions (e.g., Navigator.push/pop).
+///
+/// When you wrap a page widget (typically [Scaffold]) with [AnimatedToBoundary], the
+/// coordinate system becomes isolated from navigation transitions. Without this isolation,
+/// [AnimatedTo] would incorrectly interpret the page slide animation as a position change
+/// and create unexpected animations.
+///
+/// ## Usage
+///
+/// [AnimatedToBoundary] should typically be placed:
+/// - Near the root of the widget tree for global hit testing coverage
+/// - Around individual page widgets to isolate navigation transition effects
+///
+/// Example for global hit testing:
 /// ```dart
 /// AnimatedToBoundary(
 ///   child: MaterialApp(
@@ -27,10 +44,24 @@ import 'package:flutter/widgets.dart';
 /// )
 /// ```
 ///
-/// Also, [AnimatedToBoundary] is used when you want to start animation during the navigation transition.
-/// By wrapping the page widget, typically [Scaffold], with [AnimatedToBoundary],
-/// this let [AnimatedTo] ignore the position changes caused by navigation transition,
-/// which makes the animation accurate.
+/// Example for isolating navigation transitions:
+/// ```dart
+/// @override
+/// Widget build(BuildContext context) {
+///   return AnimatedToBoundary(
+///     child: Scaffold(
+///       body: AnimatedTo.spring(
+///         globalKey: _key,
+///         slidingFrom: Offset(100, 0),
+///         child: YourWidget(),
+///       ),
+///     ),
+///   );
+/// }
+/// ```
+///
+/// Note that [AnimatedToBoundary] can be nested, so you don't need to remove
+/// other [AnimatedToBoundary] widgets when adding a new one.
 class AnimatedToBoundary extends SingleChildRenderObjectWidget {
   const AnimatedToBoundary({
     super.key,
