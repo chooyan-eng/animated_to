@@ -1,3 +1,7 @@
+## [0.8.0] - 2025.12.26
+- Renamed `AnimatedToContainer` to `AnimatedToBoundary`
+- Fixed unexpected behavior when `AnimatedTo` is wrapped by `RepaintBoundary`
+
 ## [0.7.1] - 2025.12.11
 - Fixed a bug of unexpected behavior during navigation transition.
 
