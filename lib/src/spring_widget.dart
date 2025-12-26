@@ -388,8 +388,10 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
     }
 
     // Animation is now active, regardless of animating right now or not.
-    final animationActions = composeSpringAnimation(
-      controller: _controller,
+    final animationActions = composeAnimation(
+      animationValue: _controller.value,
+      isAnimating: _controller.isAnimating,
+      velocity: _controller.velocity,
       offset: offset,
       globalOffset: globalOffset,
       ancestorChanged: ancestorChanged,

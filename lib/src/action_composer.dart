@@ -3,7 +3,6 @@ import 'package:animated_to/src/helper.dart';
 import 'package:animated_to/src/journey.dart';
 import 'package:animated_to/src/let.dart';
 import 'package:flutter/widgets.dart';
-import 'package:motor/motor.dart';
 
 List<MutationAction> composeDisabled(
   bool isAnimating,
@@ -49,6 +48,8 @@ List<MutationAction> composeFirstFrame(
 
 List<MutationAction> composeAnimation({
   required Offset? animationValue,
+  required bool isAnimating,
+  Offset? velocity,
   required Offset offset,
   required Offset globalOffset,
   required Offset boundaryOffset,
@@ -70,7 +71,7 @@ List<MutationAction> composeAnimation({
         ).let(
           (hasChangedPosition) => [
             ...switch ((
-              isAnimating: animationValue != null,
+              isAnimating: isAnimating,
               hasPositionChanged: hasChangedPosition,
             )) {
               (isAnimating: false, hasPositionChanged: false) => [
@@ -109,6 +110,7 @@ List<MutationAction> composeAnimation({
                       ..._composeStartAnimation(
                         true,
                         journey,
+                        velocity: velocity,
                       ),
                       PaintChild.requireContext(journey.from),
                     ])!
@@ -132,75 +134,6 @@ bool hasChangedPosition({
 extension on Offset {
   Offset get abs => Offset(dx.abs(), dy.abs());
 }
-
-List<MutationAction> composeSpringAnimation({
-  required MotionController<Offset> controller,
-  required Offset offset,
-  required Offset globalOffset,
-  required Offset boundaryOffset,
-  required bool ancestorChanged,
-  required Offset? ancestorGlobalOffset,
-  required OffsetCache cache,
-}) =>
-    ((
-      current: ancestorChanged ? boundaryOffset : globalOffset,
-      cached: ancestorChanged
-          ? cache.lastBoundaryOffset ?? boundaryOffset
-          : cache.lastGlobalOffset ?? globalOffset
-    )).let((effectiveGlobalOffsets) => hasChangedPosition(
-          lastGlobalOffset: cache.lastGlobalOffset ?? globalOffset,
-          currentGlobalOffset: globalOffset,
-          lastAncestorGlobalOffset:
-              cache.lastAncestorGlobalOffset ?? ancestorGlobalOffset,
-          currentAncestorGlobalOffset: ancestorGlobalOffset,
-        ).let(
-          (hasChangedPosition) => [
-            ...switch ((
-              isAnimating: controller.isAnimating,
-              hasPositionChanged: hasChangedPosition,
-            )) {
-              (isAnimating: false, hasPositionChanged: false) => [
-                  PaintChild.requireContext(offset),
-                ],
-              (isAnimating: false, hasPositionChanged: true) =>
-                // cache scroll offset and position considering scroll gap
-                // regardless of whether animating now or not.
-                Journey(
-                        from: offset -
-                            (boundaryOffset -
-                                (cache.lastBoundaryOffset ?? boundaryOffset)),
-                        to: offset)
-                    .let((journey) => [
-                          ..._composeStartAnimation(
-                            false,
-                            journey,
-                          ),
-                          PaintChild.requireContext(journey.from),
-                        ])!,
-              (isAnimating: true, hasPositionChanged: false) => [
-                  PaintChild.requireContext(
-                      controller.value + (offset - cache.startOffset!)),
-                ],
-              (isAnimating: true, hasPositionChanged: true) => Journey(
-                  from: (cache.lastOffset! - controller.value)
-                      .let((gap) => cache.lastBoundaryOffset! - gap)
-                      .let((currentBoundaryOffset) =>
-                          boundaryOffset - currentBoundaryOffset)
-                      .let((gap) => offset - gap)!,
-                  to: offset,
-                ).let((journey) => [
-                      // if [position] is updated during animation,
-                      // start another animation from current position
-                      ..._composeStartAnimation(
-                        true,
-                        journey,
-                        velocity: controller.velocity,
-                      ),
-                      PaintChild.requireContext(journey.from),
-                    ])!
-            },
-          ],
-        )!)!;
 
 List<MutationAction> _composeStartAnimation(
   bool isAnimating,
