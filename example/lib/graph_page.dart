@@ -48,117 +48,120 @@ class _GraphPageState extends State<GraphPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF1A1A2E),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF16213E),
-          elevation: 0,
+    return AnimatedToContainer(
+      child: Theme(
+        data: ThemeData.dark().copyWith(
+          scaffoldBackgroundColor: const Color(0xFF1A1A2E),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFF16213E),
+            elevation: 0,
+          ),
         ),
-      ),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Live Graph Simulation'),
-        ),
-        body: Stack(
-          children: [
-            // Grid background
-            CustomPaint(
-              size: Size.infinite,
-              painter: GridPainter(),
-            ),
-            // Graph content
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 60),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Stats panel
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0F3460).withAlpha(128),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.blue[400]!.withAlpha(128),
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('Live Graph Simulation'),
+          ),
+          body: Stack(
+            children: [
+              // Grid background
+              CustomPaint(
+                size: Size.infinite,
+                painter: GridPainter(),
+              ),
+              // Graph content
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 60),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Stats panel
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F3460).withAlpha(128),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.blue[400]!.withAlpha(128),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _StatItem(
+                            label: 'Max Value',
+                            value: _maxValue.toString(),
+                            icon: Icons.arrow_upward_rounded,
+                          ),
+                          const SizedBox(width: 24),
+                          _StatItem(
+                            label: 'Items',
+                            value: _items.toString(),
+                            icon: Icons.bar_chart_rounded,
+                          ),
+                        ],
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _StatItem(
-                          label: 'Max Value',
-                          value: _maxValue.toString(),
-                          icon: Icons.arrow_upward_rounded,
-                        ),
-                        const SizedBox(width: 24),
-                        _StatItem(
-                          label: 'Items',
-                          value: _items.toString(),
-                          icon: Icons.bar_chart_rounded,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-                  // Graph
-                  Expanded(
-                    child: Row(
-                      children: [
-                        // Y-axis
-                        Container(
-                          width: 2,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.blue[400]!,
-                                Colors.blue[400]!.withAlpha(128),
+                    const SizedBox(height: 40),
+                    // Graph
+                    Expanded(
+                      child: Row(
+                        children: [
+                          // Y-axis
+                          Container(
+                            width: 2,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.blue[400]!,
+                                  Colors.blue[400]!.withAlpha(128),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                          // Bars
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              spacing: 10,
+                              children: [
+                                ...data.map(
+                                  (e) => AnimatedTo.spring(
+                                    globalKey: e.key,
+                                    child: _Bar(
+                                      value: e.value,
+                                      maxValue: _maxValue,
+                                      color: e.color,
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 24),
-                        // Bars
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            spacing: 10,
-                            children: [
-                              ...data.map(
-                                (e) => AnimatedTo.spring(
-                                  globalKey: e.key,
-                                  child: _Bar(
-                                    value: e.value,
-                                    maxValue: _maxValue,
-                                    color: e.color,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+            ],
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              if (_timer != null) {
+                _stopSimulation();
+              } else {
+                _startSimulation();
+              }
+            },
+            child: Icon(
+              _timer != null ? Icons.stop_rounded : Icons.play_arrow_rounded,
+              color: Colors.white,
             ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            if (_timer != null) {
-              _stopSimulation();
-            } else {
-              _startSimulation();
-            }
-          },
-          child: Icon(
-            _timer != null ? Icons.stop_rounded : Icons.play_arrow_rounded,
-            color: Colors.white,
           ),
         ),
       ),

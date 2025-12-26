@@ -15,56 +15,58 @@ class _TwoLinesPageState extends State<TwoLinesPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Two Line Page'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Stack(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  spacing: 10,
-                  children: _leftLineItems
-                      .map(
-                        (item) => _SpringItem(
-                          item: item,
-                          vsync: this,
-                          onTap: () {
-                            setState(() {
-                              _leftLineItems.remove(item);
-                              _rightLineItems.add(item);
-                            });
-                          },
-                          color: Colors.amberAccent,
-                        ),
-                      )
-                      .toList(),
-                ),
-                Column(
-                  spacing: 10,
-                  children: _rightLineItems
-                      .map(
-                        (item) => _SpringItem(
-                          item: item,
-                          vsync: this,
-                          onTap: () {
-                            setState(() {
-                              _rightLineItems.remove(item);
-                              _leftLineItems.add(item);
-                            });
-                          },
-                          color: Colors.blueAccent,
-                        ),
-                      )
-                      .toList(),
-                ),
-              ],
-            ),
-          ],
+    return AnimatedToContainer(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Two Line Page'),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Stack(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    spacing: 10,
+                    children: _leftLineItems
+                        .map(
+                          (item) => _SpringItem(
+                            item: item,
+                            vsync: this,
+                            onTap: () {
+                              setState(() {
+                                _leftLineItems.remove(item);
+                                _rightLineItems.add(item);
+                              });
+                            },
+                            color: Colors.amberAccent,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  Column(
+                    spacing: 10,
+                    children: _rightLineItems
+                        .map(
+                          (item) => _SpringItem(
+                            item: item,
+                            vsync: this,
+                            onTap: () {
+                              setState(() {
+                                _rightLineItems.remove(item);
+                                _leftLineItems.add(item);
+                              });
+                            },
+                            color: Colors.blueAccent,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

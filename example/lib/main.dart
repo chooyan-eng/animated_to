@@ -64,159 +64,162 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
         .toList();
 
     return Scaffold(
-      drawer: Drawer(
-        backgroundColor: Colors.grey[300],
-        child: SafeArea(
-          child: SingleChildScrollView(
-            controller: _drawerScrollController,
-            child: Column(
-              spacing: 4,
-              children: [
-                _DrawerMenuItem(
-                  title: 'Spring Demo',
-                  vsync: this,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const SpringPage(),
-                      ),
-                    );
-                  },
-                  controller: _drawerScrollController,
-                ),
-                _DrawerMenuItem(
-                  title: 'Graph Demo',
-                  vsync: this,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const GraphPage(),
-                      ),
-                    );
-                  },
-                  controller: _drawerScrollController,
-                ),
-                _DrawerMenuItem(
-                  title: 'Throwing ball',
-                  vsync: this,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const DraggablePage(),
-                      ),
-                    );
-                  },
-                  controller: _drawerScrollController,
-                ),
-                _DrawerMenuItem(
-                  title: 'List Switch Demo',
-                  vsync: this,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const ListSwitchPage(),
-                      ),
-                    );
-                  },
-                  controller: _drawerScrollController,
-                ),
-                _DrawerMenuItem(
-                  title: 'TODO cards',
-                  vsync: this,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const TodoCardsPage(),
-                      ),
-                    );
-                  },
-                  controller: _drawerScrollController,
-                ),
-                _DrawerMenuItem(
-                  title: 'Two line boxes',
-                  vsync: this,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const TwoLinesPage(),
-                      ),
-                    );
-                  },
-                  controller: _drawerScrollController,
-                ),
-                _DrawerMenuItem(
-                  title: 'Scrollable',
-                  vsync: this,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const ScrollablePage(),
-                      ),
-                    );
-                  },
-                  controller: _drawerScrollController,
-                ),
-                _DrawerMenuItem(
-                  title: 'Horizontal Scrollable',
-                  vsync: this,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const HorizontalScrollablePage(),
-                      ),
-                    );
-                  },
-                  controller: _drawerScrollController,
-                ),
-                _DrawerMenuItem(
-                  title: 'Simple Demo',
-                  vsync: this,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const SimpleDemoPage(),
-                      ),
-                    );
-                  },
-                  controller: _drawerScrollController,
-                ),
-                _DrawerMenuItem(
-                  title: 'Hit Test Demo',
-                  vsync: this,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const HitTestPage(),
-                      ),
-                    );
-                  },
-                  controller: _drawerScrollController,
-                ),
-                _DrawerMenuItem(
-                  title: 'Nested AnimatedTo',
-                  vsync: this,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const NestedAnimatedToPage(),
-                      ),
-                    );
-                  },
-                  controller: _drawerScrollController,
-                ),
-                _DrawerMenuItem(
-                  title: 'List menu page',
-                  vsync: this,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const ListPage(),
-                      ),
-                    );
-                  },
-                  controller: _drawerScrollController,
-                ),
-              ],
+      drawer: AnimatedToContainer(
+        child: Drawer(
+          backgroundColor: Colors.grey[300],
+          child: SafeArea(
+            child: SingleChildScrollView(
+              controller: _drawerScrollController,
+              child: Column(
+                spacing: 4,
+                children: [
+                  _DrawerMenuItem(
+                    title: 'Spring Demo',
+                    vsync: this,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const SpringPage(),
+                        ),
+                      );
+                    },
+                    controller: _drawerScrollController,
+                  ),
+                  _DrawerMenuItem(
+                    title: 'Graph Demo',
+                    vsync: this,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const GraphPage(),
+                        ),
+                      );
+                    },
+                    controller: _drawerScrollController,
+                  ),
+                  _DrawerMenuItem(
+                    title: 'Throwing ball',
+                    vsync: this,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const DraggablePage(),
+                        ),
+                      );
+                    },
+                    controller: _drawerScrollController,
+                  ),
+                  _DrawerMenuItem(
+                    title: 'List Switch Demo',
+                    vsync: this,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const ListSwitchPage(),
+                        ),
+                      );
+                    },
+                    controller: _drawerScrollController,
+                  ),
+                  _DrawerMenuItem(
+                    title: 'TODO cards',
+                    vsync: this,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const TodoCardsPage(),
+                        ),
+                      );
+                    },
+                    controller: _drawerScrollController,
+                  ),
+                  _DrawerMenuItem(
+                    title: 'Two line boxes',
+                    vsync: this,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const TwoLinesPage(),
+                        ),
+                      );
+                    },
+                    controller: _drawerScrollController,
+                  ),
+                  _DrawerMenuItem(
+                    title: 'Scrollable',
+                    vsync: this,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const ScrollablePage(),
+                        ),
+                      );
+                    },
+                    controller: _drawerScrollController,
+                  ),
+                  _DrawerMenuItem(
+                    title: 'Horizontal Scrollable',
+                    vsync: this,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const HorizontalScrollablePage(),
+                        ),
+                      );
+                    },
+                    controller: _drawerScrollController,
+                  ),
+                  _DrawerMenuItem(
+                    title: 'Simple Demo',
+                    vsync: this,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const SimpleDemoPage(),
+                        ),
+                      );
+                    },
+                    controller: _drawerScrollController,
+                  ),
+                  _DrawerMenuItem(
+                    title: 'Hit Test Demo',
+                    vsync: this,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const HitTestPage(),
+                        ),
+                      );
+                    },
+                    controller: _drawerScrollController,
+                  ),
+                  _DrawerMenuItem(
+                    title: 'Nested AnimatedTo',
+                    vsync: this,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const NestedAnimatedToPage(),
+                        ),
+                      );
+                    },
+                    controller: _drawerScrollController,
+                  ),
+                  _DrawerMenuItem(
+                    title: 'List menu page',
+                    vsync: this,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const ListPage(),
+                        ),
+                      );
+                    },
+                    controller: _drawerScrollController,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

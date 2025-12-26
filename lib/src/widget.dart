@@ -44,6 +44,7 @@ class AnimatedTo extends StatelessWidget {
     this.appearingFrom,
     this.slidingFrom,
     this.enabled = true,
+    this.hitTestEnabled = true,
     this.onEnd,
     this.verticalController,
     this.horizontalController,
@@ -61,6 +62,7 @@ class AnimatedTo extends StatelessWidget {
     Offset? appearingFrom,
     Offset? slidingFrom,
     bool enabled = true,
+    bool hitTestEnabled = true,
     void Function(AnimationEndCause cause)? onEnd,
     ScrollController? verticalController,
     ScrollController? horizontalController,
@@ -74,6 +76,7 @@ class AnimatedTo extends StatelessWidget {
       appearingFrom: appearingFrom,
       slidingFrom: slidingFrom,
       enabled: enabled,
+      hitTestEnabled: hitTestEnabled,
       onEnd: onEnd,
       verticalController: verticalController,
       horizontalController: horizontalController,
@@ -90,6 +93,7 @@ class AnimatedTo extends StatelessWidget {
     Offset? appearingFrom,
     Offset? slidingFrom,
     bool enabled = true,
+    bool hitTestEnabled = true,
     void Function(AnimationEndCause cause)? onEnd,
     ScrollController? verticalController,
     ScrollController? horizontalController,
@@ -103,6 +107,7 @@ class AnimatedTo extends StatelessWidget {
       appearingFrom: appearingFrom,
       slidingFrom: slidingFrom,
       enabled: enabled,
+      hitTestEnabled: hitTestEnabled,
       onEnd: onEnd,
       verticalController: verticalController,
       horizontalController: horizontalController,
@@ -142,6 +147,17 @@ class AnimatedTo extends StatelessWidget {
   /// Whether the animation is enabled.
   /// If false, the [child] will update its position without animation.
   final bool enabled;
+
+  /// Controls whether hit testing is performed at the animated position during animation.
+  ///
+  /// When `true`, this widget will respond to hit tests at its current animated position
+  /// while animating. When `false`, hit tests will only occur at the widget's layout position.
+  ///
+  /// Note: This flag only affects behavior during animation. When the widget is not animating,
+  /// hit testing always occurs at the widget's normal layout position regardless of this setting.
+  ///
+  /// Defaults to `true`.
+  final bool hitTestEnabled;
 
   /// callback when animation is completed.
   final void Function(AnimationEndCause cause)? onEnd;
@@ -183,6 +199,7 @@ class AnimatedTo extends StatelessWidget {
           appearingFrom: appearingFrom,
           slidingFrom: slidingFrom,
           enabled: enabled,
+          hitTestEnabled: hitTestEnabled,
           onEnd: onEnd,
           verticalController: verticalController,
           horizontalController: horizontalController,
@@ -196,6 +213,7 @@ class AnimatedTo extends StatelessWidget {
           appearingFrom: appearingFrom,
           slidingFrom: slidingFrom,
           enabled: enabled,
+          hitTestEnabled: hitTestEnabled,
           onEnd: onEnd,
           verticalController: verticalController,
           horizontalController: horizontalController,

@@ -113,5 +113,14 @@ abstract class RenderAnimatedTo extends RenderProxyBox {
   Offset? get currentAnimatedOffset;
 
   /// The offset of this render object in global coordinates.
-  Offset? get globalOffset;
+  Offset get globalOffset;
+
+  /// Controls whether hit testing is performed at the animated position during animation.
+  ///
+  /// When `true`, this widget will respond to hit tests at its current animated position
+  /// while animating. When `false`, hit tests will only occur at the widget's layout position.
+  ///
+  /// Note: This flag only affects behavior during animation. When the widget is not animating,
+  /// hit testing always occurs at the widget's normal layout position regardless of this setting.
+  bool get hitTestEnabled;
 }

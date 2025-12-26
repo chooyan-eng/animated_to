@@ -16,6 +16,7 @@ class CurveAnimatedTo extends StatefulWidget {
     this.appearingFrom,
     this.slidingFrom,
     this.enabled = true,
+    this.hitTestEnabled = true,
     this.onEnd,
     this.verticalController,
     this.horizontalController,
@@ -43,6 +44,17 @@ class CurveAnimatedTo extends StatefulWidget {
   /// Whether the animation is enabled.
   /// If false, the [child] will update its position without animation.
   final bool enabled;
+
+  /// Controls whether hit testing is performed at the animated position during animation.
+  ///
+  /// When `true`, this widget will respond to hit tests at its current animated position
+  /// while animating. When `false`, hit tests will only occur at the widget's layout position.
+  ///
+  /// Note: This flag only affects behavior during animation. When the widget is not animating,
+  /// hit testing always occurs at the widget's normal layout position regardless of this setting.
+  ///
+  /// Defaults to `true`.
+  final bool hitTestEnabled;
 
   /// callback when animation is completed.
   final void Function(AnimationEndCause cause)? onEnd;
@@ -79,15 +91,18 @@ class _CurveAnimatedToState extends State<CurveAnimatedTo>
         appearingFrom: widget.appearingFrom,
         slidingFrom: widget.slidingFrom,
         enabled: widget.enabled,
+        hitTestEnabled: widget.hitTestEnabled,
         onEnd: widget.onEnd,
         verticalController: widget.verticalController,
         horizontalController: widget.horizontalController,
-        child: widget.sizeWidget == null
-            ? widget.child
-            : SizeMaintainer(
-                sizeWidget: widget.sizeWidget!,
-                child: widget.child!,
-              ),
+        child: RepaintBoundary(
+          child: widget.sizeWidget == null
+              ? widget.child
+              : SizeMaintainer(
+                  sizeWidget: widget.sizeWidget!,
+                  child: widget.child!,
+                ),
+        ),
       );
 }
 
@@ -98,6 +113,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
   final Offset? appearingFrom;
   final Offset? slidingFrom;
   final bool enabled;
+  final bool hitTestEnabled;
   final void Function(AnimationEndCause cause)? onEnd;
   final ScrollController? verticalController;
   final ScrollController? horizontalController;
@@ -110,6 +126,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
     this.appearingFrom,
     this.slidingFrom,
     this.enabled = true,
+    this.hitTestEnabled = true,
     this.onEnd,
     this.verticalController,
     this.horizontalController,
@@ -124,6 +141,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
       appearingFrom: appearingFrom,
       slidingFrom: slidingFrom,
       enabled: enabled,
+      hitTestEnabled: hitTestEnabled,
       onEnd: onEnd,
       verticalController: verticalController,
       horizontalController: horizontalController,
@@ -142,9 +160,12 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
       ..appearingFrom = appearingFrom
       ..slidingFrom = slidingFrom
       ..enabled = enabled
+      ..hitTestEnabled = hitTestEnabled
       ..onEnd = onEnd
       ..verticalController = verticalController
-      ..horizontalController = horizontalController;
+      ..horizontalController = horizontalController
+      ..container = AnimatedToContainer.of(context)
+      ..ancestor = context.findAncestorRenderObjectOfType<RenderAnimatedTo>();
   }
 }
 
@@ -157,6 +178,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
     Offset? appearingFrom,
     Offset? slidingFrom,
     required bool enabled,
+    required bool hitTestEnabled,
     void Function(AnimationEndCause cause)? onEnd,
     ScrollController? verticalController,
     ScrollController? horizontalController,
@@ -168,6 +190,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
         _appearingFrom = appearingFrom,
         _slidingFrom = slidingFrom,
         _enabled = enabled,
+        _hitTestEnabled = hitTestEnabled,
         _onEnd = onEnd,
         _verticalController = verticalController,
         _horizontalController = horizontalController,
@@ -212,6 +235,15 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
     _enabled = value;
   }
 
+  bool _hitTestEnabled = true;
+  set hitTestEnabled(bool value) {
+    _hitTestEnabled = value;
+  }
+
+  /// Implementation of [RenderAnimatedTo.hitTestEnabled]
+  @override
+  bool get hitTestEnabled => _hitTestEnabled;
+
   void Function(AnimationEndCause cause)? _onEnd;
   set onEnd(void Function(AnimationEndCause cause)? value) {
     _onEnd = value;
@@ -239,10 +271,17 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   var _cache = OffsetCache();
 
   /// Reference to the ancestor [AnimatedToContainer]'s render object
-  final RenderAnimatedToContainer? _container;
+  RenderAnimatedToContainer? _container;
+  set container(RenderAnimatedToContainer? value) {
+    _container = value;
+  }
 
   /// Reference to the ancestor [RenderAnimatedTo] if any.
-  final RenderAnimatedTo? _ancestor;
+  RenderAnimatedTo? _ancestor;
+  RenderAnimatedTo? _lastAncestor;
+  set ancestor(RenderAnimatedTo? value) {
+    _ancestor = value;
+  }
 
   /// Current animated position in global coordinates
   Offset _currentAnimatedOffset = Offset.zero;
@@ -252,7 +291,12 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   Offset? get currentAnimatedOffset => _currentAnimatedOffset;
 
   @override
-  Offset? get globalOffset => localToGlobal(Offset.zero);
+  Offset get globalOffset => localToGlobal(
+      Offset(
+        _horizontalScrollOffset ?? 0,
+        _verticalScrollOffset ?? 0,
+      ),
+      ancestor: _ancestor ?? _container);
 
   ScrollController? _verticalController;
   set verticalController(ScrollController? value) {
@@ -297,17 +341,17 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   /// note that [offset] also changes when scrolling on [SingleChildScrollView].
   @override
   void paint(PaintingContext context, Offset offset) {
-    final globalOffset = localToGlobal(
-        Offset(
-          _horizontalScrollOffset ?? 0,
-          _verticalScrollOffset ?? 0,
-        ),
-        ancestor: _container);
+    final containerOffset = localToGlobal(Offset.zero, ancestor: _container);
+
     final cacheMutation = OffsetCacheMutation(
       lastOffset: offset,
       lastGlobalOffset: globalOffset,
-      lastAncestorGlobalOffset: _ancestor?.globalOffset,
+      lastAncestorGlobalOffset: _ancestor?.globalOffset ?? Offset.zero,
+      lastContainerOffset: containerOffset,
     );
+
+    final ancestorChanged = _lastAncestor != _ancestor;
+    _lastAncestor = _ancestor;
 
     final prioriActions = switch ((_enabled, _journey.isPreparing)) {
       // if disabled, just keep the position for the next chance to animate.
@@ -337,6 +381,8 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
       animationValue: _animation?.value,
       offset: offset,
       globalOffset: globalOffset,
+      containerOffset: containerOffset,
+      ancestorChanged: ancestorChanged,
       ancestorGlobalOffset: _ancestor?.globalOffset,
       cache: _cache,
     );
@@ -353,7 +399,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
           _journey = value;
         case AnimationStart(:final journey):
           // Register with container when animation starts
-          _container?.registerAnimatingWidget(this);
+          if (hitTestEnabled) _container?.registerAnimatingWidget(this);
           _controller = AnimationController(
             vsync: _vsync,
             duration: _duration,
@@ -395,18 +441,22 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
         case PaintChild(:final offset, :final context):
           assert(context != null, 'context is required');
           // Update current animated position in global coordinates
-          _currentAnimatedOffset = offset;
+          _currentAnimatedOffset =
+              localToGlobal(Offset.zero, ancestor: _container) +
+                  (offset - _cache.lastOffset!);
           context!.paintChild(child!, offset);
         case OffsetCacheMutation(
             :final startOffset,
             :final lastOffset,
             :final lastGlobalOffset,
+            :final lastContainerOffset,
             :final lastAncestorGlobalOffset,
           ):
           _cache = _cache.copyWith(
             startOffset: startOffset,
             lastOffset: lastOffset,
             lastGlobalOffset: lastGlobalOffset,
+            lastContainerOffset: lastContainerOffset,
             lastAncestorGlobalOffset: lastAncestorGlobalOffset,
           );
       }
