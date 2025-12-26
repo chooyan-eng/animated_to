@@ -48,7 +48,7 @@ class _GraphPageState extends State<GraphPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedToContainer(
+    return AnimatedToBoundary(
       child: Theme(
         data: ThemeData.dark().copyWith(
           scaffoldBackgroundColor: const Color(0xFF1A1A2E),

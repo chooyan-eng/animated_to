@@ -16,7 +16,7 @@ class _SimpleDemoPageState extends State<SimpleDemoPage>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedToContainer(
+    return AnimatedToBoundary(
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.grey[850],

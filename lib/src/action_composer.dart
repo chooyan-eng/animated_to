@@ -51,15 +51,15 @@ List<MutationAction> composeAnimation({
   required Offset? animationValue,
   required Offset offset,
   required Offset globalOffset,
-  required Offset containerOffset,
+  required Offset boundaryOffset,
   required bool ancestorChanged,
   required Offset? ancestorGlobalOffset,
   required OffsetCache cache,
 }) =>
     ((
-      current: ancestorChanged ? containerOffset : globalOffset,
+      current: ancestorChanged ? boundaryOffset : globalOffset,
       cached: ancestorChanged
-          ? cache.lastContainerOffset ?? containerOffset
+          ? cache.lastBoundaryOffset ?? boundaryOffset
           : cache.lastGlobalOffset ?? globalOffset
     )).let((effectiveGlobalOffsets) => hasChangedPosition(
           lastGlobalOffset: cache.lastGlobalOffset ?? globalOffset,
@@ -98,9 +98,9 @@ List<MutationAction> composeAnimation({
               (isAnimating: true, hasPositionChanged: true) => Journey(
                   from: (cache.lastOffset! - animationValue!)
                       .let((gap) => effectiveGlobalOffsets.cached - gap)
-                      .let((currentContainerOffset) =>
+                      .let((currentBoundaryOffset) =>
                           effectiveGlobalOffsets.current -
-                          currentContainerOffset)
+                          currentBoundaryOffset)
                       .let((gap) => offset - gap)!,
                   to: offset,
                 ).let((journey) => [
@@ -137,15 +137,15 @@ List<MutationAction> composeSpringAnimation({
   required MotionController<Offset> controller,
   required Offset offset,
   required Offset globalOffset,
-  required Offset containerOffset,
+  required Offset boundaryOffset,
   required bool ancestorChanged,
   required Offset? ancestorGlobalOffset,
   required OffsetCache cache,
 }) =>
     ((
-      current: ancestorChanged ? containerOffset : globalOffset,
+      current: ancestorChanged ? boundaryOffset : globalOffset,
       cached: ancestorChanged
-          ? cache.lastContainerOffset ?? containerOffset
+          ? cache.lastBoundaryOffset ?? boundaryOffset
           : cache.lastGlobalOffset ?? globalOffset
     )).let((effectiveGlobalOffsets) => hasChangedPosition(
           lastGlobalOffset: cache.lastGlobalOffset ?? globalOffset,
@@ -167,8 +167,8 @@ List<MutationAction> composeSpringAnimation({
                 // regardless of whether animating now or not.
                 Journey(
                         from: offset -
-                            (containerOffset -
-                                (cache.lastContainerOffset ?? containerOffset)),
+                            (boundaryOffset -
+                                (cache.lastBoundaryOffset ?? boundaryOffset)),
                         to: offset)
                     .let((journey) => [
                           ..._composeStartAnimation(
@@ -183,9 +183,9 @@ List<MutationAction> composeSpringAnimation({
                 ],
               (isAnimating: true, hasPositionChanged: true) => Journey(
                   from: (cache.lastOffset! - controller.value)
-                      .let((gap) => cache.lastContainerOffset! - gap)
-                      .let((currentContainerOffset) =>
-                          containerOffset - currentContainerOffset)
+                      .let((gap) => cache.lastBoundaryOffset! - gap)
+                      .let((currentBoundaryOffset) =>
+                          boundaryOffset - currentBoundaryOffset)
                       .let((gap) => offset - gap)!,
                   to: offset,
                 ).let((journey) => [

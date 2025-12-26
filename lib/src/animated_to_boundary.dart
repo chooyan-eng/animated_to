@@ -1,19 +1,19 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-/// A container widget that enables hit testing for animating [AnimatedTo] descendants.
+/// A boundary widget that enables hit testing for animating [AnimatedTo] descendants.
 ///
 /// When [AnimatedTo] widgets are animating, they visually move to new positions but
-/// their hit test areas remain at their layout positions. [AnimatedToContainer] solves
+/// their hit test areas remain at their layout positions. [AnimatedToBoundary] solves
 /// this by intercepting hit tests and checking animating descendants at their animated
 /// positions first.
 ///
-/// [AnimatedToContainer] should typically be placed near the root of the widget tree
+/// [AnimatedToBoundary] should typically be placed near the root of the widget tree
 /// so that all the [AnimatedTo] widgets moving around the entire screen are covered.
 ///
 /// Example:
 /// ```dart
-/// AnimatedToContainer(
+/// AnimatedToBoundary(
 ///   child: MaterialApp(
 ///     home: Column(
 ///       children: [
@@ -27,27 +27,27 @@ import 'package:flutter/widgets.dart';
 /// )
 /// ```
 ///
-/// Also, [AnimatedToContainer] is used when you want to start animation during the navigation transition.
-/// By wrapping the page widget, typically [Scaffold], with [AnimatedToContainer],
+/// Also, [AnimatedToBoundary] is used when you want to start animation during the navigation transition.
+/// By wrapping the page widget, typically [Scaffold], with [AnimatedToBoundary],
 /// this let [AnimatedTo] ignore the position changes caused by navigation transition,
 /// which makes the animation accurate.
-class AnimatedToContainer extends SingleChildRenderObjectWidget {
-  const AnimatedToContainer({
+class AnimatedToBoundary extends SingleChildRenderObjectWidget {
+  const AnimatedToBoundary({
     super.key,
     required super.child,
   });
 
-  /// Retrieves the nearest [RenderAnimatedToContainer] from the given [context].
+  /// Retrieves the nearest [RenderAnimatedToBoundary] from the given [context].
   ///
-  /// Returns null if no [AnimatedToContainer] ancestor is found.
-  static RenderAnimatedToContainer? of(BuildContext context) {
-    return context.findAncestorRenderObjectOfType<RenderAnimatedToContainer>();
+  /// Returns null if no [AnimatedToBoundary] ancestor is found.
+  static RenderAnimatedToBoundary? of(BuildContext context) {
+    return context.findAncestorRenderObjectOfType<RenderAnimatedToBoundary>();
   }
 
-  /// Creates a [RenderAnimatedToContainer] which performs custom hit testing.
+  /// Creates a [RenderAnimatedToBoundary] which performs custom hit testing.
   @override
-  RenderAnimatedToContainer createRenderObject(BuildContext context) {
-    return RenderAnimatedToContainer();
+  RenderAnimatedToBoundary createRenderObject(BuildContext context) {
+    return RenderAnimatedToBoundary();
   }
 }
 
@@ -56,7 +56,7 @@ class AnimatedToContainer extends SingleChildRenderObjectWidget {
 /// This render object maintains a list of currently animating [RenderAnimatedTo]
 /// objects and performs hit testing on them at their animated positions before
 /// falling back to normal hit testing.
-class RenderAnimatedToContainer extends RenderProxyBox {
+class RenderAnimatedToBoundary extends RenderProxyBox {
   /// List of currently animating render objects.
   final List<RenderAnimatedTo> _animatingWidgets = [];
 
@@ -105,7 +105,7 @@ class RenderAnimatedToContainer extends RenderProxyBox {
   }
 }
 
-/// Base interface for render objects that can be registered with [RenderAnimatedToContainer].
+/// Base interface for render objects that can be registered with [RenderAnimatedToBoundary].
 ///
 /// This is implemented by both spring and curve versions of [RenderAnimatedTo].
 abstract class RenderAnimatedTo extends RenderProxyBox {

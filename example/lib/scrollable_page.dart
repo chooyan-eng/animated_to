@@ -29,7 +29,7 @@ class _ScrollablePageState extends State<ScrollablePage>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedToContainer(
+    return AnimatedToBoundary(
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.grey[850],

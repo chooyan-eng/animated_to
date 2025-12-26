@@ -75,13 +75,13 @@ As `motor` is also used inside `animated_to` package(thanks @timcreatedit!), mak
 
 By default, `AnimatedTo` widgets can only receive gestures (taps, drags, etc.) at their **layout position**, not at their **animated position**. This is because Flutter's hit testing system checks widgets at their natural layout position, even though `AnimatedTo` visually paints them at a different location during animation.
 
-### AnimatedToContainer
+### AnimatedToBoundary
 
-To enable gesture detection at the animated position, wrap your widget tree with `AnimatedToContainer`. This container intercepts hit tests and properly forwards them to animating widgets at their current animated positions.
+To enable gesture detection at the animated position, wrap your widget tree with `AnimatedToBoundary`. This boundary intercepts hit tests and properly forwards them to animating widgets at their current animated positions.
 
 ```dart
 void main() => runApp(
-  AnimatedToContainer( // Place near root
+  AnimatedToBoundary( // Place near root
     child: MaterialApp(
       home: MyHomePage(),
     ),
@@ -89,18 +89,18 @@ void main() => runApp(
 );
 ```
 
-Note that `AnimatedToContainer` should be placed near the root of your widget tree to properly intercept hit tests for all descendant `AnimatedTo` widgets. In the example app, it wraps the entire `MaterialApp`.
+Note that `AnimatedToBoundary` should be placed near the root of your widget tree to properly intercept hit tests for all descendant `AnimatedTo` widgets. In the example app, it wraps the entire `MaterialApp`.
 
-`AnimatedToContainer` is optional. If you don't need to detect gestures on your `AnimatedTo` widgets during animation, you can omit it completely. The animations will work perfectly fine without it.
+`AnimatedToBoundary` is optional. If you don't need to detect gestures on your `AnimatedTo` widgets during animation, you can omit it completely. The animations will work perfectly fine without it.
 
-In addition, `AnimatedToContainer` has another usage to keep accurate animation during transition animation, typically caused by `Navigator.push()`.
+In addition, `AnimatedToBoundary` has another usage to keep accurate animation during transition animation, typically caused by `Navigator.push()`.
 
-Because the offset changes caused by navigation transition also affects the behavior of `AnimatedTo` by default, which results in unexpected animation you want to start before navigation transition ends, you can make `AnimatedTo` ignore the transition by wrapping the entire page widget, typically `Scaffold`, with `AnimatedToContainer`. 
+Because the offset changes caused by navigation transition also affects the behavior of `AnimatedTo` by default, which results in unexpected animation you want to start before navigation transition ends, you can make `AnimatedTo` ignore the transition by wrapping the entire page widget, typically `Scaffold`, with `AnimatedToBoundary`. 
 
 ```dart
 @override
 Widget build(BuildContext context) {
-  return AnimatedToContainer(
+  return AnimatedToBoundary(
     child: Scaffold(
       body: AnimatedTo.spring(
         globalKey: _key,
@@ -112,7 +112,7 @@ Widget build(BuildContext context) {
 }
 ```
 
-Note that `AnimatedToContainer` can be nested, so you don't have to remove the other `AnimatedToContainer` you placed at the root of the widget tree.
+Note that `AnimatedToBoundary` can be nested, so you don't have to remove the other `AnimatedToBoundary` you placed at the root of the widget tree.
 
 ## Limitations
 

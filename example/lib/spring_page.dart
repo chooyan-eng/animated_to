@@ -59,7 +59,7 @@ class _SpringPageState extends State<SpringPage> with TickerProviderStateMixin {
       ),
     ];
 
-    return AnimatedToContainer(
+    return AnimatedToBoundary(
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Spring Demo'),

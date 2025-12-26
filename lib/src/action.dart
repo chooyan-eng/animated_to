@@ -40,14 +40,14 @@ class OffsetCacheMutation extends MutationAction {
   final Offset? startOffset;
   final Offset? lastOffset;
   final Offset? lastGlobalOffset;
-  final Offset? lastContainerOffset;
+  final Offset? lastBoundaryOffset;
   final Offset? lastAncestorGlobalOffset;
 
   OffsetCacheMutation({
     this.startOffset,
     this.lastOffset,
     this.lastGlobalOffset,
-    this.lastContainerOffset,
+    this.lastBoundaryOffset,
     this.lastAncestorGlobalOffset,
   });
 }

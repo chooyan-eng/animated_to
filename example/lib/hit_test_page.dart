@@ -77,7 +77,7 @@ class _HitTestPageState extends State<HitTestPage>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedToContainer(
+    return AnimatedToBoundary(
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.grey[850],
@@ -120,7 +120,7 @@ class _HitTestPageState extends State<HitTestPage>
                       ),
                       const SizedBox(height: 4),
                       const Text(
-                        'AnimatedToContainer enables hit testing during animation.',
+                        'AnimatedToBoundary enables hit testing during animation.',
                         style: TextStyle(
                           color: Colors.white54,
                           fontSize: 12,

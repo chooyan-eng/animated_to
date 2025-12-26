@@ -33,7 +33,7 @@ class _ListSwitchPageState extends State<ListSwitchPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedToContainer(
+    return AnimatedToBoundary(
       child: Scaffold(
         appBar: AppBar(title: const Text('List Switch')),
         body: Padding(

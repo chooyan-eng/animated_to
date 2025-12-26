@@ -34,7 +34,7 @@ import 'package:flutter/material.dart';
 /// Either way, the usage is the same, just wrapping whatever widget with [AnimatedTo].
 ///
 /// If you want to start animation during the navigation transition, wrap the page widget,
-/// typically [Scaffold], with [AnimatedToContainer]. This let [AnimatedTo] ignore the
+/// typically [Scaffold], with [AnimatedToBoundary]. This let [AnimatedTo] ignore the
 /// position changes caused by navigation transition, which makes the animation accurate.
 class AnimatedTo extends StatelessWidget {
   const AnimatedTo._({

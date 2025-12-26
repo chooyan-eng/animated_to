@@ -25,7 +25,7 @@ import 'package:animated_to/animated_to.dart';
 |----------|---------------|------------------|
 | Simple position changes | `AnimatedTo.curve` | GlobalKey |
 | Natural, physics-based motion | `AnimatedTo.spring` | GlobalKey |
-| Gesture interaction during animation | Either + `AnimatedToContainer` | GlobalKey, Container wrapper |
+| Gesture interaction during animation | Either + `AnimatedToBoundary` | GlobalKey, Container wrapper |
 | Inside ScrollView | Either + scroll controllers | GlobalKey, ScrollController |
 | Appearing from specific position in the first frame | Either + `appearingFrom`/`slidingFrom` | GlobalKey, Offset |
 
@@ -112,7 +112,7 @@ class _SpringWidgetState extends State<SpringWidget> {
 }
 ```
 
-### 3. Hit Testing with AnimatedToContainer
+### 3. Hit Testing with AnimatedToBoundary
 
 ```dart
 class InteractiveWidget extends StatefulWidget {
@@ -127,7 +127,7 @@ class _InteractiveWidgetState extends State<InteractiveWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedToContainer(  // Required for hit testing during animation
+    return AnimatedToBoundary(  // Required for hit testing during animation
       child: Scaffold(
         body: Align(
           alignment: _moved ? Alignment.topCenter : Alignment.bottomCenter,
@@ -172,7 +172,7 @@ class _ScrollableAnimatedWidgetState extends State<ScrollableAnimatedWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedToContainer(
+    return AnimatedToBoundary(
       child: Scaffold(
         body: SingleChildScrollView(
           controller: _scrollController,
@@ -358,10 +358,10 @@ class _DraggableWidgetState extends State<DraggableWidget> {
 | `horizontalController` | `ScrollController?` | ❌ | For horizontal SingleChildScrollView | `_scrollController` |
 | `sizeWidget` | `Widget?` | ❌ | Widget for size calculation | `SizedBox(width: 100, height: 100)` |
 
-### AnimatedToContainer
+### AnimatedToBoundary
 
 ```dart
-AnimatedToContainer(
+AnimatedToBoundary(
   child: MaterialApp(
     home: YourWidget(),
   ),
@@ -490,7 +490,7 @@ ListView.builder(
 )
 ```
 
-### ❌ Missing AnimatedToContainer for Hit Testing
+### ❌ Missing AnimatedToBoundary for Hit Testing
 ```dart
 // WRONG - Can't tap during animation
 Scaffold(
@@ -505,8 +505,8 @@ Scaffold(
 ```
 
 ```dart
-// CORRECT - Wrap with AnimatedToContainer
-AnimatedToContainer(
+// CORRECT - Wrap with AnimatedToBoundary
+AnimatedToBoundary(
   child: Scaffold(
     body: AnimatedTo.curve(
       globalKey: _key,
@@ -649,10 +649,10 @@ class _GridDemoState extends State<GridDemo> {
 
 ## Hit Testing Requirements
 
-- **Without AnimatedToContainer**: Hit testing only works at layout position
-- **With AnimatedToContainer**: Hit testing works at animated position
+- **Without AnimatedToBoundary**: Hit testing only works at layout position
+- **With AnimatedToBoundary**: Hit testing works at animated position
 - **Placement**: Near root for global coverage, or around specific pages
-- **Nesting**: AnimatedToContainer can be nested safely
+- **Nesting**: AnimatedToBoundary can be nested safely
 
 ## Motor Package Integration
 
@@ -676,7 +676,7 @@ When generating AnimatedTo code, ensure:
 
 - [ ] `GlobalKey` is provided and unique
 - [ ] Import statement is included
-- [ ] `AnimatedToContainer` is used when hit testing is needed
+- [ ] `AnimatedToBoundary` is used when hit testing is needed
 - [ ] Correct `ScrollController` direction for `SingleChildScrollView`
 - [ ] No `ScrollController` for `ListView`
 - [ ] `appearingFrom` uses absolute coordinates

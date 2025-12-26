@@ -15,7 +15,7 @@ class _TwoLinesPageState extends State<TwoLinesPage>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedToContainer(
+    return AnimatedToBoundary(
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Two Line Page'),

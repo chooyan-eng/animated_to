@@ -36,7 +36,7 @@ class _NestedAnimatedToPageState extends State<NestedAnimatedToPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedToContainer(
+    return AnimatedToBoundary(
       child: Theme(
         data: ThemeData.dark().copyWith(
           scaffoldBackgroundColor: const Color(0xFF1A1A2E),
@@ -133,9 +133,9 @@ class _NestedAnimatedToPageState extends State<NestedAnimatedToPage> {
                     child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Column(
-                          // mainAxisAlignment: _parentAtTop
-                          //     ? MainAxisAlignment.start
-                          //     : MainAxisAlignment.end,
+                          mainAxisAlignment: _parentAtTop
+                              ? MainAxisAlignment.start
+                              : MainAxisAlignment.end,
                           children: [
                             const SizedBox(height: 20),
                             _buildParentContainer(),
@@ -144,12 +144,6 @@ class _NestedAnimatedToPageState extends State<NestedAnimatedToPage> {
                   ),
                 ],
               ),
-              if (!_parentAtTop)
-                Positioned(
-                  left: 20,
-                  bottom: 20,
-                  child: _buildChildContainer(),
-                )
             ],
           ),
         ),
@@ -226,15 +220,14 @@ class _NestedAnimatedToPageState extends State<NestedAnimatedToPage> {
               ),
             ),
             // Child container
-            if (_parentAtTop)
-              Align(
-                alignment:
-                    _childAtLeft ? Alignment.centerLeft : Alignment.centerRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: _buildChildContainer(),
-                ),
+            Align(
+              alignment:
+                  _childAtLeft ? Alignment.centerLeft : Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: _buildChildContainer(),
               ),
+            ),
           ],
         ),
       ),

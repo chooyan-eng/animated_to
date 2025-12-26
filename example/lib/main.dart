@@ -64,7 +64,7 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
         .toList();
 
     return Scaffold(
-      drawer: AnimatedToContainer(
+      drawer: AnimatedToBoundary(
         child: Drawer(
           backgroundColor: Colors.grey[300],
           child: SafeArea(

@@ -18,7 +18,7 @@ class _TodoCardsPageState extends State<TodoCardsPage>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedToContainer(
+    return AnimatedToBoundary(
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Todo Cards Page'),
