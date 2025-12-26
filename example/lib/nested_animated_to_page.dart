@@ -28,121 +28,130 @@ class _NestedAnimatedToPageState extends State<NestedAnimatedToPage> {
 
   void _moveBoth() {
     setState(() {
-      _childAtLeft = !_childAtLeft;
       _parentAtTop = !_parentAtTop;
+      _childAtLeft = !_childAtLeft;
+      // _parentAtTop = !_parentAtTop;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF1A1A2E),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF16213E),
-          elevation: 0,
-        ),
-      ),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'Nested Animation Control',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.5,
-            ),
+    return AnimatedToContainer(
+      child: Theme(
+        data: ThemeData.dark().copyWith(
+          scaffoldBackgroundColor: const Color(0xFF1A1A2E),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFF16213E),
+            elevation: 0,
           ),
         ),
-        body: Stack(
-          children: [
-            // Grid background
-            CustomPaint(
-              size: Size.infinite,
-              painter: GridPainter(),
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text(
+              'Nested Animation Control',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.5,
+              ),
             ),
-            // Main content
-            Column(
-              children: [
-                // Control panel
-                Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFF0F3460).withAlpha(179),
-                          const Color(0xFF16213E).withAlpha(179),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.blue[400]!.withAlpha(102),
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.blue[900]!.withAlpha(128),
-                          blurRadius: 20,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        // Stats row
-                        // Control buttons
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          alignment: WrapAlignment.center,
-                          children: [
-                            _ControlButton(
-                              icon: Icons.swap_vert_rounded,
-                              label: _parentAtTop ? 'Parent ↓' : 'Parent ↑',
-                              onPressed: _moveParent,
-                              color: Colors.purple,
-                            ),
-                            _ControlButton(
-                              icon: Icons.swap_horiz_rounded,
-                              label: _childAtLeft ? 'Child →' : 'Child ←',
-                              onPressed: _moveChild,
-                              color: Colors.pink,
-                            ),
-                            _ControlButton(
-                              icon: Icons.all_inclusive_rounded,
-                              label: 'Move Both',
-                              onPressed: _moveBoth,
-                              color: Colors.cyan,
-                              isWide: true,
-                            ),
+          ),
+          body: Stack(
+            children: [
+              // Grid background
+              CustomPaint(
+                size: Size.infinite,
+                painter: GridPainter(),
+              ),
+              // Main content
+              Column(
+                children: [
+                  // Control panel
+                  Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            const Color(0xFF0F3460).withAlpha(179),
+                            const Color(0xFF16213E).withAlpha(179),
                           ],
                         ),
-                      ],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.blue[400]!.withAlpha(102),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.blue[900]!.withAlpha(128),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // Stats row
+                          // Control buttons
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              _ControlButton(
+                                icon: Icons.swap_vert_rounded,
+                                label: _parentAtTop ? 'Parent ↓' : 'Parent ↑',
+                                onPressed: _moveParent,
+                                color: Colors.purple,
+                              ),
+                              _ControlButton(
+                                icon: Icons.swap_horiz_rounded,
+                                label: _childAtLeft ? 'Child →' : 'Child ←',
+                                onPressed: _moveChild,
+                                color: Colors.pink,
+                              ),
+                              _ControlButton(
+                                icon: Icons.all_inclusive_rounded,
+                                label: 'Move Both',
+                                onPressed: _moveBoth,
+                                color: Colors.cyan,
+                                isWide: true,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                // Animation area
-                Expanded(
-                  child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        mainAxisAlignment: _parentAtTop
-                            ? MainAxisAlignment.start
-                            : MainAxisAlignment.end,
-                        children: [
-                          const SizedBox(height: 20),
-                          _buildParentContainer(),
-                        ],
-                      )),
-                ),
-              ],
-            ),
-          ],
+                  // Animation area
+                  Expanded(
+                    child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          // mainAxisAlignment: _parentAtTop
+                          //     ? MainAxisAlignment.start
+                          //     : MainAxisAlignment.end,
+                          children: [
+                            const SizedBox(height: 20),
+                            _buildParentContainer(),
+                          ],
+                        )),
+                  ),
+                ],
+              ),
+              if (!_parentAtTop)
+                Positioned(
+                  left: 20,
+                  bottom: 20,
+                  child: _buildChildContainer(),
+                )
+            ],
+          ),
         ),
       ),
     );
@@ -217,14 +226,15 @@ class _NestedAnimatedToPageState extends State<NestedAnimatedToPage> {
               ),
             ),
             // Child container
-            Align(
-              alignment:
-                  _childAtLeft ? Alignment.centerLeft : Alignment.centerRight,
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: _buildChildContainer(),
+            if (_parentAtTop)
+              Align(
+                alignment:
+                    _childAtLeft ? Alignment.centerLeft : Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: _buildChildContainer(),
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -232,7 +242,7 @@ class _NestedAnimatedToPageState extends State<NestedAnimatedToPage> {
   }
 
   Widget _buildChildContainer() {
-    return AnimatedTo.spring(
+    return AnimatedTo.curve(
       globalKey: const GlobalObjectKey('child'),
       child: Container(
         width: 100,

@@ -33,72 +33,74 @@ class _ListSwitchPageState extends State<ListSwitchPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('List Switch')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SegmentedButton<_Mode>(
-                  selected: {_mode},
-                  onSelectionChanged: (Set<_Mode> newSelection) {
-                    setState(() => _mode = newSelection.first);
-                  },
-                  segments: const [
-                    ButtonSegment<_Mode>(
-                      value: _Mode.list,
-                      icon: Icon(Icons.view_list),
-                      label: Text('List'),
-                    ),
-                    ButtonSegment<_Mode>(
-                      value: _Mode.grid,
-                      icon: Icon(Icons.grid_view),
-                      label: Text('Grid'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              // Because animated_to doesn't support sliver right now,
-              // we must use Column/Row inside SingleChildScrollView.
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                child: _mode == _Mode.list
-                    ? Column(
-                        spacing: 20,
-                        children: items
-                            .map((e) => _ListItem(
-                                  item: e,
-                                  scrollController: _scrollController,
-                                ))
-                            .toList(),
-                      )
-                    : SingleChildScrollView(
-                        controller: _scrollController,
-                        child: Column(
-                          children: [
-                            Row(
-                              spacing: 20,
-                              children: items
-                                  .map((e) => Expanded(
-                                        child: _GridItem(
-                                          item: e,
-                                          scrollController: _scrollController,
-                                        ),
-                                      ))
-                                  .toList(),
-                            ),
-                          ],
-                        ),
+    return AnimatedToContainer(
+      child: Scaffold(
+        appBar: AppBar(title: const Text('List Switch')),
+        body: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SegmentedButton<_Mode>(
+                    selected: {_mode},
+                    onSelectionChanged: (Set<_Mode> newSelection) {
+                      setState(() => _mode = newSelection.first);
+                    },
+                    segments: const [
+                      ButtonSegment<_Mode>(
+                        value: _Mode.list,
+                        icon: Icon(Icons.view_list),
+                        label: Text('List'),
                       ),
+                      ButtonSegment<_Mode>(
+                        value: _Mode.grid,
+                        icon: Icon(Icons.grid_view),
+                        label: Text('Grid'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              Expanded(
+                // Because animated_to doesn't support sliver right now,
+                // we must use Column/Row inside SingleChildScrollView.
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  child: _mode == _Mode.list
+                      ? Column(
+                          spacing: 20,
+                          children: items
+                              .map((e) => _ListItem(
+                                    item: e,
+                                    scrollController: _scrollController,
+                                  ))
+                              .toList(),
+                        )
+                      : SingleChildScrollView(
+                          controller: _scrollController,
+                          child: Column(
+                            children: [
+                              Row(
+                                spacing: 20,
+                                children: items
+                                    .map((e) => Expanded(
+                                          child: _GridItem(
+                                            item: e,
+                                            scrollController: _scrollController,
+                                          ),
+                                        ))
+                                    .toList(),
+                              ),
+                            ],
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

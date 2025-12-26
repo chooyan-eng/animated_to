@@ -18,104 +18,106 @@ class _TodoCardsPageState extends State<TodoCardsPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Two Line Page'),
-      ),
-      body: NotificationListener<ScrollNotification>(
-        // workaround to fix scrolling issue by disabling animation when scrolling
-        onNotification: (notification) {
-          if (notification is ScrollStartNotification) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              setState(() => _enabled = false);
-            });
-          }
-          if (notification is ScrollEndNotification) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              setState(() => _enabled = true);
-            });
-          }
-          return true;
-        },
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              spacing: 32,
-              children: [
-                Column(
-                  spacing: 10,
-                  children: _leftLineItems
-                      .map(
-                        (item) => _Item(
-                          item: item,
-                          vsync: this,
-                          onTap: () {
-                            setState(() {
-                              _leftLineItems.remove(item);
-                              _centerLineItems.add(item);
-                            });
-                          },
-                          color: Colors.amber[700]!,
-                          enabled: _enabled,
-                        ),
-                      )
-                      .toList(),
-                ),
-                Column(
-                  spacing: 10,
-                  children: _centerLineItems
-                      .map(
-                        (item) => _Item(
-                          item: item,
-                          vsync: this,
-                          onTap: () {
-                            setState(() {
-                              _centerLineItems.remove(item);
-                              _rightLineItems.add(item);
-                            });
-                          },
-                          color: Colors.green[700]!,
-                          enabled: _enabled,
-                        ),
-                      )
-                      .toList(),
-                ),
-                Column(
-                  spacing: 10,
-                  children: _rightLineItems
-                      .map(
-                        (item) => _Item(
-                          item: item,
-                          vsync: this,
-                          onTap: () {
-                            setState(() {
-                              _rightLineItems.remove(item);
-                              _centerLineItems.add(item);
-                            });
-                          },
-                          color: Colors.blue[700]!,
-                          enabled: _enabled,
-                        ),
-                      )
-                      .toList(),
-                ),
-              ],
+    return AnimatedToContainer(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Todo Cards Page'),
+        ),
+        body: NotificationListener<ScrollNotification>(
+          // workaround to fix scrolling issue by disabling animation when scrolling
+          onNotification: (notification) {
+            if (notification is ScrollStartNotification) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                setState(() => _enabled = false);
+              });
+            }
+            if (notification is ScrollEndNotification) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                setState(() => _enabled = true);
+              });
+            }
+            return true;
+          },
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                spacing: 32,
+                children: [
+                  Column(
+                    spacing: 10,
+                    children: _leftLineItems
+                        .map(
+                          (item) => _Item(
+                            item: item,
+                            vsync: this,
+                            onTap: () {
+                              setState(() {
+                                _leftLineItems.remove(item);
+                                _centerLineItems.add(item);
+                              });
+                            },
+                            color: Colors.amber[700]!,
+                            enabled: _enabled,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  Column(
+                    spacing: 10,
+                    children: _centerLineItems
+                        .map(
+                          (item) => _Item(
+                            item: item,
+                            vsync: this,
+                            onTap: () {
+                              setState(() {
+                                _centerLineItems.remove(item);
+                                _rightLineItems.add(item);
+                              });
+                            },
+                            color: Colors.green[700]!,
+                            enabled: _enabled,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  Column(
+                    spacing: 10,
+                    children: _rightLineItems
+                        .map(
+                          (item) => _Item(
+                            item: item,
+                            vsync: this,
+                            onTap: () {
+                              setState(() {
+                                _rightLineItems.remove(item);
+                                _centerLineItems.add(item);
+                              });
+                            },
+                            color: Colors.blue[700]!,
+                            enabled: _enabled,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          setState(() {
-            final allItemNumber = _leftLineItems.length +
-                _centerLineItems.length +
-                _rightLineItems.length;
-            _leftLineItems.add('t${allItemNumber + 1}');
-          });
-        },
-        child: const Icon(Icons.add),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            setState(() {
+              final allItemNumber = _leftLineItems.length +
+                  _centerLineItems.length +
+                  _rightLineItems.length;
+              _leftLineItems.add('t${allItemNumber + 1}');
+            });
+          },
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }
@@ -140,6 +142,7 @@ class _Item extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedTo.spring(
       enabled: enabled,
+      hitTestEnabled: false,
       globalKey: GlobalObjectKey(item),
       slidingFrom: Offset(0, 30),
       child: GestureDetector(
