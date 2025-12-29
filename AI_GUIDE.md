@@ -341,6 +341,7 @@ class _DraggableWidgetState extends State<DraggableWidget> {
 | `verticalController` | `ScrollController?` | ❌ | For vertical SingleChildScrollView | `_scrollController` |
 | `horizontalController` | `ScrollController?` | ❌ | For horizontal SingleChildScrollView | `_scrollController` |
 | `sizeWidget` | `Widget?` | ❌ | Widget for size calculation during size animations | `SizedBox(width: 100, height: 100)` |
+| `hitTestEnabled` | `bool` | ❌ | Enable hit testing during animation (requires AnimatedToBoundary). Set to `false` for scrollable content | `false` |
 
 ### AnimatedTo.spring Parameters
 
@@ -357,6 +358,7 @@ class _DraggableWidgetState extends State<DraggableWidget> {
 | `verticalController` | `ScrollController?` | ❌ | For vertical SingleChildScrollView | `_scrollController` |
 | `horizontalController` | `ScrollController?` | ❌ | For horizontal SingleChildScrollView | `_scrollController` |
 | `sizeWidget` | `Widget?` | ❌ | Widget for size calculation | `SizedBox(width: 100, height: 100)` |
+| `hitTestEnabled` | `bool` | ❌ | Enable hit testing during animation (requires AnimatedToBoundary). Set to `false` for scrollable content | `false` |
 
 ### AnimatedToBoundary
 
@@ -575,6 +577,49 @@ SingleChildScrollView(
 )
 ```
 
+### ❌ Hit Testing Enabled Blocking Scroll Gestures
+```dart
+// WRONG - Hit testing intercepts scroll gestures during animation
+AnimatedToBoundary(
+  child: SingleChildScrollView(
+    controller: _scrollController,
+    child: Wrap(
+      children: items.map((item) {
+        return AnimatedTo.spring(
+          globalKey: _keys[item],
+          verticalController: _scrollController,
+          // hitTestEnabled defaults to true - blocks scrolling!
+          child: Container(...),
+        );
+      }).toList(),
+    ),
+  ),
+)
+```
+
+```dart
+// CORRECT - Disable hit testing for scrollable animated content
+AnimatedToBoundary(
+  child: SingleChildScrollView(
+    controller: _scrollController,
+    child: Wrap(
+      children: items.map((item) {
+        return AnimatedTo.spring(
+          globalKey: _keys[item],
+          verticalController: _scrollController,
+          hitTestEnabled: false,  // Allows scroll gestures during animation
+          child: Container(...),
+        );
+      }).toList(),
+    ),
+  ),
+)
+```
+
+**Why this happens**: When `AnimatedToBoundary` is present and `hitTestEnabled` is `true` (default), AnimatedTo intercepts all hit tests during animation to enable gesture interaction on moving widgets. However, this can interfere with scroll gestures in scrollable views.
+
+**Solution**: Set `hitTestEnabled: false` when widgets don't need to be tappable during animation or when inside scrollable containers.
+
 ### ❌ Switching Between Different Layout Widgets
 ```dart
 // WRONG - Switching between GridView and ListView breaks AnimatedTo
@@ -682,6 +727,55 @@ class _GridDemoState extends State<GridDemo> {
 - **With AnimatedToBoundary**: Hit testing works at animated position
 - **Placement**: Near root for global coverage, or around specific pages
 - **Nesting**: AnimatedToBoundary can be nested safely
+- **Performance consideration**: When `AnimatedToBoundary` is present and `hitTestEnabled` is `true` (default), AnimatedTo intercepts all hit tests during animation. This can interfere with scroll gestures in scrollable views.
+
+### When to Disable Hit Testing
+
+Use `hitTestEnabled: false` when:
+
+1. **Scrollable content is animating**: Prevents interference with scroll gestures
+2. **No interaction needed during animation**: Improves performance by skipping hit test calculations
+3. **Layout-only animations**: When widgets shouldn't be tappable during animation
+
+```dart
+// CORRECT - Disable hit testing for scrollable animated content
+AnimatedToBoundary(
+  child: SingleChildScrollView(
+    controller: _scrollController,
+    child: Wrap(
+      children: items.map((item) {
+        return AnimatedTo.spring(
+          globalKey: _keys[item],
+          verticalController: _scrollController,
+          hitTestEnabled: false,  // Allows scroll gestures during animation
+          child: Container(...),
+        );
+      }).toList(),
+    ),
+  ),
+)
+
+// WRONG - Hit testing enabled blocks scroll during animation
+AnimatedToBoundary(
+  child: SingleChildScrollView(
+    controller: _scrollController,
+    child: Wrap(
+      children: items.map((item) {
+        return AnimatedTo.spring(
+          globalKey: _keys[item],
+          verticalController: _scrollController,
+          // hitTestEnabled defaults to true - blocks scrolling!
+          child: Container(...),
+        );
+      }).toList(),
+    ),
+  ),
+)
+```
+
+**Rule of thumb**: 
+- Set `hitTestEnabled: true` (default) when widgets need to respond to taps/gestures during animation
+- Set `hitTestEnabled: false` when animation is purely visual or inside scrollable containers
 
 ## Motor Package Integration
 
@@ -706,8 +800,9 @@ When generating AnimatedTo code, ensure:
 - [ ] `GlobalKey` is provided and unique
 - [ ] Import statement is included
 - [ ] `AnimatedToBoundary` is used when hit testing is needed
+- [ ] `hitTestEnabled` set to `false` for scrollable animated content
 - [ ] Correct `ScrollController` direction for `SingleChildScrollView`
 - [ ] No `ScrollController` for `ListView`
 - [ ] `appearingFrom` uses absolute coordinates
 - [ ] `slidingFrom` uses relative coordinates
-- [ ] State management triggers rebuilds thazt change widget position
+- [ ] State management triggers rebuilds that change widget position

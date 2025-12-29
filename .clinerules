@@ -1,0 +1,11 @@
+[ignore]
+# Flutter generated
+build/**
+lib/generated/**
+lib/**/*.gr.dart
+
+# huge files
+.idea/**
+.packages
+.dart_tool/**
+pubspec.lock
