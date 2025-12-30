@@ -379,7 +379,6 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
     // Animation is now active, regardless of animating right now or not.
     final animationActions = composeAnimation(
       animationValue: _animation?.value,
-      isAnimating: _controller?.isAnimating == true,
       offset: offset,
       globalOffset: globalOffset,
       boundaryOffset: boundaryOffset,

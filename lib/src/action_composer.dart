@@ -30,7 +30,7 @@ import 'package:flutter/widgets.dart';
 ///   it should be cancelled and painted at the destination position([offset]) immediately.
 /// - If no animation is not happening, just paint at [offset].
 List<MutationAction> composeDisabled(bool isAnimating, Offset offset) => [
-      isAnimating ? AnimationCancel() : AnimationEnd(),
+      if (isAnimating) AnimationCancel(),
       PaintChild.requireContext(offset),
     ];
 
@@ -106,9 +106,6 @@ List<MutationAction> composeAnimation({
   /// the gap between [offset] and cached [startOffset] is added to this value in reality.
   required Offset? animationValue,
 
-  /// Whether animation is currently happening.
-  required bool isAnimating,
-
   /// The velocity of the animation, if any.
   Offset? velocity,
 
@@ -152,7 +149,7 @@ List<MutationAction> composeAnimation({
         ).let(
           (hasChangedPosition) => [
             ...switch ((
-              isAnimating: isAnimating,
+              isAnimating: animationValue != null,
               hasPositionChanged: hasChangedPosition,
             )) {
               (isAnimating: false, hasPositionChanged: false) => [
