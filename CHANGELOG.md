@@ -1,3 +1,6 @@
+## [0.8.1] - 2025.12.31
+- Fixed wrong coordinate calculation inside `AnimatedTo.spring`
+
 ## [0.8.0] - 2025.12.26
 - Renamed `AnimatedToContainer` to `AnimatedToBoundary`
 - Fixed unexpected behavior when `AnimatedTo` is wrapped by `RepaintBoundary`
