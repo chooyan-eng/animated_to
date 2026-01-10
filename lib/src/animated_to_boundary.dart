@@ -116,6 +116,12 @@ class RenderAnimatedToBoundary extends RenderProxyBox {
   /// TODO(chooyan-eng): consider z-order, but how?
   @override
   bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    _animatingWidgets.removeWhere(
+      (renderObject) =>
+          !renderObject.attached ||
+          !renderObject.hitTestEnabled ||
+          renderObject.currentAnimatedOffset == null,
+    );
     for (final animatingWidget in _animatingWidgets) {
       final animatedOffset = animatingWidget.currentAnimatedOffset!;
       final isHit = result.addWithPaintOffset(
@@ -127,12 +133,30 @@ class RenderAnimatedToBoundary extends RenderProxyBox {
         },
       );
       if (isHit) {
+        _addAncestorHitTestEntries(result, animatingWidget, position);
         return true;
       }
     }
 
     // No animating widget was hit, fall back to normal hit testing
     return super.hitTest(result, position: position);
+  }
+
+  void _addAncestorHitTestEntries(
+    BoxHitTestResult result,
+    RenderObject leaf,
+    Offset position,
+  ) {
+    final globalPosition = localToGlobal(position);
+    RenderObject? ancestor = leaf.parent;
+    while (ancestor != null && ancestor != this) {
+      if (ancestor is RenderBox) {
+        final localPosition = ancestor.globalToLocal(globalPosition);
+        result.add(BoxHitTestEntry(ancestor, localPosition));
+      }
+      ancestor = ancestor.parent;
+    }
+    result.add(BoxHitTestEntry(this, position));
   }
 }
 
