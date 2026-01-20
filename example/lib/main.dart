@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:animated_to/animated_to.dart';
+import 'package:example/boundary_constraints_page.dart';
 import 'package:example/draggable_page.dart';
 import 'package:example/graph_page.dart';
 import 'package:example/hit_test_page.dart';
@@ -80,6 +81,18 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (context) => const SpringPage(),
+                        ),
+                      );
+                    },
+                    controller: _drawerScrollController,
+                  ),
+                  _DrawerMenuItem(
+                    title: 'Boundary Constraints',
+                    vsync: this,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const BoundaryConstraintsPage(),
                         ),
                       );
                     },
