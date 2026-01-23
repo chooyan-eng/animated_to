@@ -136,6 +136,11 @@ class RenderAnimatedToBoundary extends RenderProxyBox {
   /// TODO(chooyan-eng): consider z-order, but how?
   @override
   bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    // During animation we cannot use normal hit testing because the pointer
+    // must be evaluated at the animated (visual) position, not the layout
+    // position. We therefore short-circuit to animating widgets and perform
+    // a manual ancestor gate (pointer blockers / bounds / clips).
+    final globalPosition = localToGlobal(position);
     _animatingWidgets.removeWhere(
       (renderObject) =>
           !renderObject.attached ||
@@ -144,6 +149,11 @@ class RenderAnimatedToBoundary extends RenderProxyBox {
     );
 
     bool hitTestWidget(RenderAnimatedTo animatingWidget) {
+      // Recreate the ancestor "should this hit reach me?" gate since we are
+      // bypassing the normal top-down hit test traversal.
+      if (!_ancestorsAllowHit(animatingWidget, globalPosition)) {
+        return false;
+      }
       final transform = animatingWidget.currentAnimatedTransform!;
       // Use addWithPaintTransform instead of addWithPaintOffset to properly
       // handle rotations, scales, and other transforms between the boundary
@@ -182,6 +192,31 @@ class RenderAnimatedToBoundary extends RenderProxyBox {
       return false;
     }
     return super.hitTest(result, position: position);
+  }
+
+  bool _ancestorsAllowHit(RenderObject leaf, Offset globalPosition) {
+    // Walk from the animated widget up to this boundary and apply the key
+    // hit-test rules that would normally be enforced by ancestors.
+    //
+    // TODO(jesper): we intentionally skip ancestor bounds/clip checks
+    // here. During animation the widget is visually offset from its layout
+    // position, so those checks run in layout space and would reject valid
+    // visual hits. If we ever reintroduce them, we need to evaluate against
+    // the animated transform (not the layout transform).
+    RenderObject? ancestor = leaf.parent;
+    while (ancestor != null && ancestor != this) {
+      if (ancestor is RenderIgnorePointer && ancestor.ignoring) {
+        return false;
+      }
+      if (ancestor is RenderAbsorbPointer && ancestor.absorbing) {
+        return false;
+      }
+      if (ancestor is RenderOffstage && ancestor.offstage) {
+        return false;
+      }
+      ancestor = ancestor.parent;
+    }
+    return true;
   }
 
   void _addAncestorHitTestEntries(
