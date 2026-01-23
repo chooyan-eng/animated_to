@@ -45,6 +45,7 @@ class AnimatedTo extends StatelessWidget {
     this.slidingFrom,
     this.enabled = true,
     this.hitTestEnabled = true,
+    this.hitTestOverflow = false,
     this.onEnd,
     this.verticalController,
     this.horizontalController,
@@ -63,6 +64,7 @@ class AnimatedTo extends StatelessWidget {
     Offset? slidingFrom,
     bool enabled = true,
     bool hitTestEnabled = true,
+    bool hitTestOverflow = false,
     void Function(AnimationEndCause cause)? onEnd,
     ScrollController? verticalController,
     ScrollController? horizontalController,
@@ -77,6 +79,7 @@ class AnimatedTo extends StatelessWidget {
       slidingFrom: slidingFrom,
       enabled: enabled,
       hitTestEnabled: hitTestEnabled,
+      hitTestOverflow: hitTestOverflow,
       onEnd: onEnd,
       verticalController: verticalController,
       horizontalController: horizontalController,
@@ -94,6 +97,7 @@ class AnimatedTo extends StatelessWidget {
     Offset? slidingFrom,
     bool enabled = true,
     bool hitTestEnabled = true,
+    bool hitTestOverflow = false,
     void Function(AnimationEndCause cause)? onEnd,
     ScrollController? verticalController,
     ScrollController? horizontalController,
@@ -108,6 +112,7 @@ class AnimatedTo extends StatelessWidget {
       slidingFrom: slidingFrom,
       enabled: enabled,
       hitTestEnabled: hitTestEnabled,
+      hitTestOverflow: hitTestOverflow,
       onEnd: onEnd,
       verticalController: verticalController,
       horizontalController: horizontalController,
@@ -159,6 +164,15 @@ class AnimatedTo extends StatelessWidget {
   /// Defaults to `true`.
   final bool hitTestEnabled;
 
+  /// When true, allows hit testing outside this widget's layout bounds.
+  ///
+  /// This is useful when a descendant transform paints outside its original
+  /// bounds (e.g., rotation) and you want taps to be detected on the visual
+  /// area rather than the untransformed layout box.
+  ///
+  /// Defaults to `false`.
+  final bool hitTestOverflow;
+
   /// callback when animation is completed.
   final void Function(AnimationEndCause cause)? onEnd;
 
@@ -200,6 +214,7 @@ class AnimatedTo extends StatelessWidget {
           slidingFrom: slidingFrom,
           enabled: enabled,
           hitTestEnabled: hitTestEnabled,
+          hitTestOverflow: hitTestOverflow,
           onEnd: onEnd,
           verticalController: verticalController,
           horizontalController: horizontalController,
@@ -214,6 +229,7 @@ class AnimatedTo extends StatelessWidget {
           slidingFrom: slidingFrom,
           enabled: enabled,
           hitTestEnabled: hitTestEnabled,
+          hitTestOverflow: hitTestOverflow,
           onEnd: onEnd,
           verticalController: verticalController,
           horizontalController: horizontalController,
