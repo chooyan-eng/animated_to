@@ -52,7 +52,7 @@ class _DragHarnessState extends State<_DragHarness> {
         alignment: _moved ? Alignment.centerRight : Alignment.centerLeft,
         child: Draggable(
           feedback: content,
-          childWhenDragging: Opacity(opacity: 0, child: content),
+          childWhenDragging: const Opacity(opacity: 0, child: content),
           onDragStarted: widget.onDragStarted,
           child: animated,
         ),
