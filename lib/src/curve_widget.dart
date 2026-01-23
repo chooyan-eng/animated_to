@@ -327,12 +327,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   /// Reference to the ancestor [AnimatedToBoundary]'s render object
   RenderAnimatedToBoundary? _boundary;
   set boundary(RenderAnimatedToBoundary? value) {
-    if (value == _boundary) return;
-    _boundary?.unregisterWidget(this);
     _boundary = value;
-    if (attached) {
-      _boundary?.registerWidget(this);
-    }
   }
 
   /// Reference to the ancestor [RenderAnimatedTo] if any.
@@ -385,18 +380,6 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   /// Implementation of [RenderAnimatedTo.currentAnimatedOffset]
   @override
   Offset? get currentAnimatedOffset => _currentAnimatedOffset;
-
-  @override
-  void attach(PipelineOwner owner) {
-    super.attach(owner);
-    _boundary?.registerWidget(this);
-  }
-
-  @override
-  void detach() {
-    _boundary?.unregisterWidget(this);
-    super.detach();
-  }
 
   @override
   Offset get globalOffset => localToGlobal(

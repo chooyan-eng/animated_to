@@ -66,6 +66,7 @@ class AnimatedToBoundary extends SingleChildRenderObjectWidget {
   const AnimatedToBoundary({
     super.key,
     required super.child,
+    this.hitTestOverflow = false,
   });
 
   /// Retrieves the nearest [RenderAnimatedToBoundary] from the given [context].
@@ -75,10 +76,21 @@ class AnimatedToBoundary extends SingleChildRenderObjectWidget {
     return context.findAncestorRenderObjectOfType<RenderAnimatedToBoundary>();
   }
 
+  /// When true, allows hit testing outside this widget's layout bounds.
+  ///
+  /// Defaults to `false`.
+  final bool hitTestOverflow;
+
   /// Creates a [RenderAnimatedToBoundary] which performs custom hit testing.
   @override
   RenderAnimatedToBoundary createRenderObject(BuildContext context) {
-    return RenderAnimatedToBoundary();
+    return RenderAnimatedToBoundary(hitTestOverflow: hitTestOverflow);
+  }
+
+  @override
+  void updateRenderObject(
+      BuildContext context, RenderAnimatedToBoundary renderObject) {
+    renderObject.hitTestOverflow = hitTestOverflow;
   }
 }
 
@@ -88,33 +100,21 @@ class AnimatedToBoundary extends SingleChildRenderObjectWidget {
 /// objects and performs hit testing on them at their animated positions before
 /// falling back to normal hit testing.
 class RenderAnimatedToBoundary extends RenderProxyBox {
+  RenderAnimatedToBoundary({bool hitTestOverflow = false})
+      : _hitTestOverflow = hitTestOverflow;
+
   /// List of currently animating render objects.
   final List<RenderAnimatedTo> _animatingWidgets = [];
-  /// List of render objects registered for hit testing (animating or not).
-  final List<RenderAnimatedTo> _registeredWidgets = [];
 
-  /// Registers a render object for hit testing.
-  ///
-  /// Called by [RenderAnimatedTo] when attached.
-  void registerWidget(RenderAnimatedTo renderObject) {
-    if (!_registeredWidgets.contains(renderObject)) {
-      _registeredWidgets.add(renderObject);
-    }
-  }
-
-  /// Unregisters a render object from hit testing.
-  ///
-  /// Called by [RenderAnimatedTo] when detached.
-  void unregisterWidget(RenderAnimatedTo renderObject) {
-    _registeredWidgets.remove(renderObject);
-    _animatingWidgets.remove(renderObject);
+  bool _hitTestOverflow = false;
+  set hitTestOverflow(bool value) {
+    _hitTestOverflow = value;
   }
 
   /// Registers an animating render object.
   ///
   /// Called by [RenderAnimatedTo] when it starts animating.
   void registerAnimatingWidget(RenderAnimatedTo renderObject) {
-    registerWidget(renderObject);
     if (!_animatingWidgets.contains(renderObject)) {
       _animatingWidgets.add(renderObject);
     }
@@ -136,12 +136,6 @@ class RenderAnimatedToBoundary extends RenderProxyBox {
   /// TODO(chooyan-eng): consider z-order, but how?
   @override
   bool hitTest(BoxHitTestResult result, {required Offset position}) {
-    _registeredWidgets.removeWhere(
-      (renderObject) =>
-          !renderObject.attached ||
-          !renderObject.hitTestEnabled ||
-          renderObject.currentAnimatedTransform == null,
-    );
     _animatingWidgets.removeWhere(
       (renderObject) =>
           !renderObject.attached ||
@@ -172,21 +166,21 @@ class RenderAnimatedToBoundary extends RenderProxyBox {
       return isHit;
     }
 
-    // Prefer animating widgets first (z-order agnostic), then fall back to
-    // any registered widgets to allow hit testing outside layout bounds.
     for (final animatingWidget in _animatingWidgets) {
       if (hitTestWidget(animatingWidget)) {
         return true;
       }
     }
-    for (final registeredWidget in _registeredWidgets) {
-      if (_animatingWidgets.contains(registeredWidget)) continue;
-      if (hitTestWidget(registeredWidget)) {
+
+    // No registered widget was hit, fall back to normal hit testing.
+    if (_hitTestOverflow) {
+      if (hitTestChildren(result, position: position) ||
+          hitTestSelf(position)) {
+        result.add(BoxHitTestEntry(this, position));
         return true;
       }
+      return false;
     }
-
-    // No registered widget was hit, fall back to normal hit testing
     return super.hitTest(result, position: position);
   }
 
