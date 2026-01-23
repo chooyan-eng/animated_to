@@ -90,11 +90,31 @@ class AnimatedToBoundary extends SingleChildRenderObjectWidget {
 class RenderAnimatedToBoundary extends RenderProxyBox {
   /// List of currently animating render objects.
   final List<RenderAnimatedTo> _animatingWidgets = [];
+  /// List of render objects registered for hit testing (animating or not).
+  final List<RenderAnimatedTo> _registeredWidgets = [];
+
+  /// Registers a render object for hit testing.
+  ///
+  /// Called by [RenderAnimatedTo] when attached.
+  void registerWidget(RenderAnimatedTo renderObject) {
+    if (!_registeredWidgets.contains(renderObject)) {
+      _registeredWidgets.add(renderObject);
+    }
+  }
+
+  /// Unregisters a render object from hit testing.
+  ///
+  /// Called by [RenderAnimatedTo] when detached.
+  void unregisterWidget(RenderAnimatedTo renderObject) {
+    _registeredWidgets.remove(renderObject);
+    _animatingWidgets.remove(renderObject);
+  }
 
   /// Registers an animating render object.
   ///
   /// Called by [RenderAnimatedTo] when it starts animating.
   void registerAnimatingWidget(RenderAnimatedTo renderObject) {
+    registerWidget(renderObject);
     if (!_animatingWidgets.contains(renderObject)) {
       _animatingWidgets.add(renderObject);
     }
@@ -116,29 +136,57 @@ class RenderAnimatedToBoundary extends RenderProxyBox {
   /// TODO(chooyan-eng): consider z-order, but how?
   @override
   bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    _registeredWidgets.removeWhere(
+      (renderObject) =>
+          !renderObject.attached ||
+          !renderObject.hitTestEnabled ||
+          renderObject.currentAnimatedTransform == null,
+    );
     _animatingWidgets.removeWhere(
       (renderObject) =>
           !renderObject.attached ||
           !renderObject.hitTestEnabled ||
-          renderObject.currentAnimatedOffset == null,
+          renderObject.currentAnimatedTransform == null,
     );
-    for (final animatingWidget in _animatingWidgets) {
-      final animatedOffset = animatingWidget.currentAnimatedOffset!;
-      final isHit = result.addWithPaintOffset(
-        offset: animatedOffset,
+
+    bool hitTestWidget(RenderAnimatedTo animatingWidget) {
+      final transform = animatingWidget.currentAnimatedTransform!;
+      // Use addWithPaintTransform instead of addWithPaintOffset to properly
+      // handle rotations, scales, and other transforms between the boundary
+      // and the animating widget.
+      final isHit = result.addWithPaintTransform(
+        transform: transform,
         position: position,
-        hitTest: (BoxHitTestResult result, Offset transformed) {
-          assert(transformed == position - animatedOffset);
-          return animatingWidget.hitTest(result, position: transformed);
+        hitTest: (BoxHitTestResult result, Offset? transformed) {
+          if (transformed == null) {
+            // Transform is degenerate (not invertible, e.g., scale=0)
+            return false;
+          }
+          // Hit test the AnimatedTo's children directly
+          return animatingWidget.hitTestChildren(result, position: transformed);
         },
       );
       if (isHit) {
         _addAncestorHitTestEntries(result, animatingWidget, position);
+      }
+      return isHit;
+    }
+
+    // Prefer animating widgets first (z-order agnostic), then fall back to
+    // any registered widgets to allow hit testing outside layout bounds.
+    for (final animatingWidget in _animatingWidgets) {
+      if (hitTestWidget(animatingWidget)) {
+        return true;
+      }
+    }
+    for (final registeredWidget in _registeredWidgets) {
+      if (_animatingWidgets.contains(registeredWidget)) continue;
+      if (hitTestWidget(registeredWidget)) {
         return true;
       }
     }
 
-    // No animating widget was hit, fall back to normal hit testing
+    // No registered widget was hit, fall back to normal hit testing
     return super.hitTest(result, position: position);
   }
 
@@ -164,7 +212,21 @@ class RenderAnimatedToBoundary extends RenderProxyBox {
 ///
 /// This is implemented by both spring and curve versions of [RenderAnimatedTo].
 abstract class RenderAnimatedTo extends RenderProxyBox {
-  /// The current animated position in global coordinates.
+  /// The full transformation matrix from this widget's child coordinate space
+  /// to the boundary's coordinate space.
+  ///
+  /// This matrix includes:
+  /// - The animation offset (translation applied during painting)
+  /// - All transforms between this widget and the boundary (rotations, scales, etc.)
+  ///
+  /// Returns null if not currently animating or if no boundary is set.
+  Matrix4? get currentAnimatedTransform;
+
+  /// The current animated position offset.
+  ///
+  /// Note: This is just the translation component and may be inaccurate
+  /// when transforms (rotation/scale) exist between boundary and this widget.
+  /// Use [currentAnimatedTransform] for accurate hit testing with transforms.
   Offset? get currentAnimatedOffset;
 
   /// The offset of this render object in global coordinates.

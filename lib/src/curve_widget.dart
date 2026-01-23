@@ -17,6 +17,7 @@ class CurveAnimatedTo extends StatefulWidget {
     this.slidingFrom,
     this.enabled = true,
     this.hitTestEnabled = true,
+    this.hitTestOverflow = false,
     this.onEnd,
     this.verticalController,
     this.horizontalController,
@@ -56,6 +57,15 @@ class CurveAnimatedTo extends StatefulWidget {
   /// Defaults to `true`.
   final bool hitTestEnabled;
 
+  /// When true, allows hit testing outside this render object's layout bounds.
+  ///
+  /// This is useful when a descendant transform paints outside its original
+  /// bounds (e.g., rotation) and you want taps to be detected on the visual
+  /// area rather than the untransformed layout box.
+  ///
+  /// Defaults to `false`.
+  final bool hitTestOverflow;
+
   /// callback when animation is completed.
   final void Function(AnimationEndCause cause)? onEnd;
 
@@ -92,6 +102,7 @@ class _CurveAnimatedToState extends State<CurveAnimatedTo>
         slidingFrom: widget.slidingFrom,
         enabled: widget.enabled,
         hitTestEnabled: widget.hitTestEnabled,
+        hitTestOverflow: widget.hitTestOverflow,
         onEnd: widget.onEnd,
         verticalController: widget.verticalController,
         horizontalController: widget.horizontalController,
@@ -114,6 +125,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
   final Offset? slidingFrom;
   final bool enabled;
   final bool hitTestEnabled;
+  final bool hitTestOverflow;
   final void Function(AnimationEndCause cause)? onEnd;
   final ScrollController? verticalController;
   final ScrollController? horizontalController;
@@ -127,6 +139,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
     this.slidingFrom,
     this.enabled = true,
     this.hitTestEnabled = true,
+    this.hitTestOverflow = false,
     this.onEnd,
     this.verticalController,
     this.horizontalController,
@@ -142,6 +155,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
       slidingFrom: slidingFrom,
       enabled: enabled,
       hitTestEnabled: hitTestEnabled,
+      hitTestOverflow: hitTestOverflow,
       onEnd: onEnd,
       verticalController: verticalController,
       horizontalController: horizontalController,
@@ -161,6 +175,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
       ..slidingFrom = slidingFrom
       ..enabled = enabled
       ..hitTestEnabled = hitTestEnabled
+      ..hitTestOverflow = hitTestOverflow
       ..onEnd = onEnd
       ..verticalController = verticalController
       ..horizontalController = horizontalController
@@ -179,6 +194,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
     Offset? slidingFrom,
     required bool enabled,
     required bool hitTestEnabled,
+    required bool hitTestOverflow,
     void Function(AnimationEndCause cause)? onEnd,
     ScrollController? verticalController,
     ScrollController? horizontalController,
@@ -191,6 +207,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
         _slidingFrom = slidingFrom,
         _enabled = enabled,
         _hitTestEnabled = hitTestEnabled,
+        _hitTestOverflow = hitTestOverflow,
         _onEnd = onEnd,
         _verticalController = verticalController,
         _horizontalController = horizontalController,
@@ -240,9 +257,46 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
     _hitTestEnabled = value;
   }
 
+  bool _hitTestOverflow = false;
+  set hitTestOverflow(bool value) {
+    _hitTestOverflow = value;
+  }
+
   /// Implementation of [RenderAnimatedTo.hitTestEnabled]
   @override
   bool get hitTestEnabled => _hitTestEnabled;
+
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    if (!_hitTestOverflow) {
+      return super.hitTest(result, position: position);
+    }
+    // Allow hit testing outside our layout bounds when overflow is enabled.
+    if (hitTestChildren(result, position: position) || hitTestSelf(position)) {
+      result.add(BoxHitTestEntry(this, position));
+      return true;
+    }
+    return false;
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    if (!_hitTestOverflow || child == null) {
+      return super.hitTestChildren(result, position: position);
+    }
+    final transform = child!.getTransformTo(this);
+    return result.addWithPaintTransform(
+      transform: transform,
+      position: position,
+      hitTest: (BoxHitTestResult result, Offset? transformed) {
+        if (transformed == null) return false;
+        // ignore: invalid_use_of_protected_member
+        return child!.hitTestChildren(result, position: transformed) ||
+            // ignore: invalid_use_of_protected_member
+            child!.hitTestSelf(transformed);
+      },
+    );
+  }
 
   void Function(AnimationEndCause cause)? _onEnd;
   set onEnd(void Function(AnimationEndCause cause)? value) {
@@ -273,7 +327,12 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   /// Reference to the ancestor [AnimatedToBoundary]'s render object
   RenderAnimatedToBoundary? _boundary;
   set boundary(RenderAnimatedToBoundary? value) {
+    if (value == _boundary) return;
+    _boundary?.unregisterWidget(this);
     _boundary = value;
+    if (attached) {
+      _boundary?.registerWidget(this);
+    }
   }
 
   /// Reference to the ancestor [RenderAnimatedTo] if any.
@@ -283,12 +342,61 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
     _ancestor = value;
   }
 
-  /// Current animated position in global coordinates
+  /// Track the last layout offset (parent-provided) and painted offset (actual)
+  /// used for hit test transform computation.
+  Offset? _lastLayoutOffset;
+  Offset? _lastPaintedOffset;
+
+  /// Current animated position in global coordinates (for backward compatibility)
   Offset _currentAnimatedOffset = Offset.zero;
+
+  /// Implementation of [RenderAnimatedTo.currentAnimatedTransform]
+  ///
+  /// Computes the full transformation matrix from child coordinate space
+  /// to boundary coordinate space, including any ancestor transforms
+  /// (rotations, scales, etc.) and the animation offset.
+  @override
+  Matrix4? get currentAnimatedTransform {
+    if (_boundary == null ||
+        _lastPaintedOffset == null ||
+        _lastLayoutOffset == null) {
+      return null;
+    }
+
+    // getTransformTo captures the FULL transformation chain:
+    // - All Transform.rotate matrices
+    // - All Transform.scale matrices
+    // - All layout offsets
+    // This transforms from our local coords → boundary coords
+    final treeTransform = getTransformTo(_boundary);
+
+    // Compose with the animation delta.
+    // getTransformTo already includes the layout offset. We only need to
+    // add the delta between the painted offset and layout offset.
+    final delta = _lastPaintedOffset! - _lastLayoutOffset!;
+    // Post-multiply: T_full = T_tree × T_delta
+    final result = treeTransform.clone();
+    // ignore: deprecated_member_use
+    result.translate(delta.dx, delta.dy);
+
+    return result;
+  }
 
   /// Implementation of [RenderAnimatedTo.currentAnimatedOffset]
   @override
   Offset? get currentAnimatedOffset => _currentAnimatedOffset;
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _boundary?.registerWidget(this);
+  }
+
+  @override
+  void detach() {
+    _boundary?.unregisterWidget(this);
+    super.detach();
+  }
 
   @override
   Offset get globalOffset => localToGlobal(
@@ -341,6 +449,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   /// note that [offset] also changes when scrolling on [SingleChildScrollView].
   @override
   void paint(PaintingContext context, Offset offset) {
+    _lastLayoutOffset = offset;
     final boundaryOffset = localToGlobal(Offset.zero, ancestor: _boundary);
 
     final cacheMutation = OffsetCacheMutation(
@@ -440,7 +549,9 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
           _animation = null;
         case PaintChild(:final offset, :final context):
           assert(context != null, 'context is required');
-          // Update current animated position in global coordinates
+          // Track the paint offset for transform calculation
+          _lastPaintedOffset = offset;
+          // Update current animated position in global coordinates (for backward compatibility)
           _currentAnimatedOffset =
               localToGlobal(Offset.zero, ancestor: _boundary) +
                   (offset - _cache.lastOffset!);
