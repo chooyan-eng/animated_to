@@ -28,26 +28,27 @@ final class AnimationEnd extends MutationAction {}
 /// [MutationAction] to cancel the ongoing animation.
 final class AnimationCancel extends MutationAction {}
 
-/// [MutationAction] to schedule a delayed animation.
-/// The receiver should start measuring the delay (with a ticker obtained
-/// from its vsync) and keep [pending] as the initial waiting state.
+/// [MutationAction] to start the delayed-animation wait.
+/// The receiver should start a ticker (obtained from its vsync) to measure
+/// reservations' deadlines and keep [pending] as the initial waiting state.
 final class DelayedAnimationSchedule extends MutationAction {
   DelayedAnimationSchedule(this.pending);
 
-  /// The initial waiting state of the delayed animation.
+  /// The initial waiting state holding the first [DelayReservation].
   final PendingDelay pending;
 }
 
-/// [MutationAction] to update the waiting state of a scheduled delayed animation.
-/// This does NOT reset the delay deadline; only the accumulated
-/// [PendingDelay.layoutShift] is updated.
+/// [MutationAction] to update the waiting state while the delay ticker keeps
+/// running: a new reservation was queued, tracked shifts were updated, or a
+/// fired reservation was removed with more still waiting. Existing
+/// reservations' deadlines are never reset.
 final class PendingDelayMutation extends MutationAction {
   PendingDelayMutation(this.value);
   final PendingDelay value;
 }
 
-/// [MutationAction] to discard a scheduled delayed animation.
-/// The receiver should stop measuring the delay and clear the waiting state.
+/// [MutationAction] to discard all waiting reservations.
+/// The receiver should stop the delay ticker and clear the waiting state.
 final class DelayedAnimationCancel extends MutationAction {}
 
 /// [MutationAction] to paint the child at [offset].

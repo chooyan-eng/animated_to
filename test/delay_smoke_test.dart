@@ -93,28 +93,33 @@ void main() {
   });
 
   testWidgets(
-      'scenario 3: move during wait updates destination without resetting deadline',
+      'scenario 3: each move during wait gets its own reservation; the first '
+      'fires on time toward ITS destination, the second redirects later',
       (tester) async {
     final key = GlobalKey();
     const delay = Duration(milliseconds: 300);
     await tester.pumpWidget(_app(left: 40, delay: delay, key: key));
     final origin = paintedOffset(tester);
 
+    // move 1: A(40) -> B(240). Reservation 1 fires at t=300.
     await tester.pumpWidget(_app(left: 240, delay: delay, key: key)); // t=0
     await tester.pump(const Duration(milliseconds: 150)); // t=150
-    // second move during the wait
+    // move 2 during the wait: B(240) -> C(340). Reservation 2 fires at t=450.
     await tester.pumpWidget(_app(left: 340, delay: delay, key: key));
     expect(paintedOffset(tester), origin, reason: 'still held after 2nd move');
 
-    // deadline is from the FIRST change (t=300), not reset to t=450
-    await tester.pump(const Duration(milliseconds: 170)); // t=320
-    await tester.pump(const Duration(milliseconds: 60)); // t=380, mid-anim
-    expect(paintedOffset(tester).dx, greaterThan(origin.dx),
-        reason: 'animation started based on the first deadline');
+    await tester.pump(const Duration(milliseconds: 150)); // t=300: fire 1
+    await tester.pump(const Duration(milliseconds: 100)); // t=400: mid A->B
+    final midAB = paintedOffset(tester);
+    expect(midAB.dx, greaterThan(origin.dx),
+        reason: 'reservation 1 fired at its own deadline');
+    expect(midAB.dx, lessThan(origin.dx + 200),
+        reason: 'heading to B (its own destination), not straight to C');
 
-    await tester.pump(const Duration(milliseconds: 400)); // finish
+    await tester.pump(const Duration(milliseconds: 50)); // t=450: fire 2
+    await tester.pump(const Duration(milliseconds: 600)); // settle
     expect(paintedOffset(tester).dx, origin.dx + 300,
-        reason: 'settled at the LATEST destination');
+        reason: 'reservation 2 redirected to C');
   });
 
   testWidgets(
@@ -155,11 +160,12 @@ void main() {
         reason: 'settled at C');
   });
 
-  // Dynamic `delay` update while waiting: the delay ticker compares elapsed
-  // time against the CURRENT delay on every tick, so shortening the delay
-  // (including to zero) mid-wait fires the pending animation at the next tick.
-  testWidgets('scenario 5: shortening delay to zero mid-wait starts promptly',
-      (tester) async {
+  // Dynamic `delay` update while waiting: deadlines are stamped when each
+  // reservation is made, so changing `delay` afterwards does not disturb
+  // reservations already waiting — it only applies to subsequent changes.
+  testWidgets(
+      'scenario 5: changing delay mid-wait keeps existing reservations on '
+      'their original deadline', (tester) async {
     final key = GlobalKey();
     const delay = Duration(milliseconds: 300);
     await tester.pumpWidget(_app(left: 40, delay: delay, key: key));
@@ -169,15 +175,87 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100)); // t=100: held
     expect(paintedOffset(tester), origin);
 
-    // rebuild with delay: zero while waiting
+    // rebuild with delay: zero while waiting (position unchanged)
     await tester.pumpWidget(
         _app(left: 240, delay: Duration.zero, key: key)); // t=100
-    await tester.pump(const Duration(milliseconds: 50)); // t=150: fires
-    await tester.pump(const Duration(milliseconds: 50)); // t=200: animating
-    expect(paintedOffset(tester).dx, greaterThan(origin.dx),
-        reason: 'pending animation fired promptly after delay was removed');
+    await tester.pump(const Duration(milliseconds: 100)); // t=200
+    expect(paintedOffset(tester), origin,
+        reason: 'the existing reservation keeps its original deadline');
+
+    await tester.pump(const Duration(milliseconds: 100)); // t=300: fires
+    await tester.pump(const Duration(milliseconds: 100)); // t=400: animating
+    expect(paintedOffset(tester).dx, greaterThan(origin.dx));
 
     await tester.pump(const Duration(milliseconds: 400));
     expect(paintedOffset(tester).dx, origin.dx + 200);
+  });
+
+  testWidgets(
+      'scenario 6: A -> B then back to A during wait: departs toward B on '
+      'the first deadline, then returns to A on the second', (tester) async {
+    final key = GlobalKey();
+    const delay = Duration(milliseconds: 300);
+    await tester.pumpWidget(_app(left: 40, delay: delay, key: key));
+    final origin = paintedOffset(tester);
+
+    // move 1: A(40) -> B(240). Reservation 1 fires at t=300 toward B.
+    await tester.pumpWidget(_app(left: 240, delay: delay, key: key)); // t=0
+    await tester.pump(const Duration(milliseconds: 150)); // t=150
+    // move 2: back to A. Reservation 2 fires at t=450 toward A.
+    await tester.pumpWidget(_app(left: 40, delay: delay, key: key));
+    expect(paintedOffset(tester), origin, reason: 'held at A while waiting');
+
+    await tester.pump(const Duration(milliseconds: 150)); // t=300: fire 1
+    await tester.pump(const Duration(milliseconds: 100)); // t=400: mid A->B
+    final midAB = paintedOffset(tester);
+    expect(midAB.dx, greaterThan(origin.dx),
+        reason: 'departed toward B even though the layout is back at A');
+
+    await tester.pump(const Duration(milliseconds: 50)); // t=450: fire 2
+    await tester.pump(const Duration(milliseconds: 100)); // t=550: returning
+    await tester.pump(const Duration(milliseconds: 600)); // settle
+    expect(paintedOffset(tester).dx, origin.dx,
+        reason: 'came back and settled at A');
+  });
+
+  testWidgets('scenario 7: spring version also holds during delay and settles',
+      (tester) async {
+    final key = GlobalKey();
+    const delay = Duration(milliseconds: 300);
+    Widget app(double left) => Directionality(
+          textDirection: TextDirection.ltr,
+          child: Stack(
+            children: [
+              Positioned(
+                left: left,
+                top: 0,
+                child: AnimatedTo.spring(
+                  globalKey: key,
+                  delay: delay,
+                  child: const SizedBox(key: _childKey, width: 10, height: 10),
+                ),
+              ),
+            ],
+          ),
+        );
+
+    await tester.pumpWidget(app(40));
+    final origin = paintedOffset(tester);
+
+    await tester.pumpWidget(app(240)); // t=0
+    await tester.pump(const Duration(milliseconds: 150)); // t=150
+    expect(paintedOffset(tester), origin, reason: 'held mid-delay');
+
+    await tester.pump(const Duration(milliseconds: 150)); // t=300: fires
+    await tester.pump(const Duration(milliseconds: 150)); // mid-spring
+    expect(paintedOffset(tester).dx, greaterThan(origin.dx),
+        reason: 'spring animation started after the delay');
+
+    // let the spring settle (snapToEnd guarantees exact arrival)
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(paintedOffset(tester).dx, closeTo(origin.dx + 200, 0.1),
+        reason: 'settled at the destination');
   });
 }

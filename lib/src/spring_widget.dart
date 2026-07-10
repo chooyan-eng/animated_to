@@ -298,16 +298,16 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   /// for scroll management
   OffsetCache _cache = OffsetCache();
 
-  /// state of a delayed animation waiting for [_delay] to expire, if any.
+  /// state of the delayed animations waiting to start, if any.
   PendingDelay? _pendingDelay;
 
-  /// ticker to measure [_delay]. Obtained from [_vsync] so that it stays
-  /// consistent with [TickerMode].
+  /// ticker to measure reservations' deadlines. Obtained from [_vsync] so
+  /// that it stays consistent with [TickerMode].
   Ticker? _delayTicker;
 
-  /// whether [_delay] has expired and the delayed animation should start
-  /// in the next paint.
-  bool _delayExpired = false;
+  /// the latest elapsed time reported by [_delayTicker].
+  /// [Duration.zero] while the ticker is not running.
+  Duration _delayElapsed = Duration.zero;
 
   /// Reference to the ancestor [AnimatedToBoundary]'s render object
   RenderAnimatedToBoundary? _boundary;
@@ -428,7 +428,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
       cache: _cache,
       delay: _delay,
       pendingDelay: _pendingDelay,
-      delayExpired: _delayExpired,
+      delayElapsed: _delayElapsed,
     );
 
     _applyMutation(
@@ -443,7 +443,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
           _journey = value;
         case DelayedAnimationSchedule(:final pending):
           _pendingDelay = pending;
-          _delayExpired = false;
+          _delayElapsed = Duration.zero;
           _delayTicker?.dispose();
           _delayTicker = _vsync.createTicker(_onDelayTick)..start();
         case PendingDelayMutation(:final value):
@@ -452,7 +452,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
           _delayTicker?.dispose();
           _delayTicker = null;
           _pendingDelay = null;
-          _delayExpired = false;
+          _delayElapsed = Duration.zero;
         case AnimationStart(:final journey, :final velocity):
           // Register with boundary when animation starts
           if (hitTestEnabled) _boundary?.registerAnimatingWidget(this);
@@ -528,14 +528,18 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
     }
   }
 
-  /// called every tick while a delayed animation is waiting.
-  /// Once [_delay] has passed since the delay was scheduled,
-  /// requests a paint so that the delayed animation starts there.
+  /// called every tick while delayed animations are waiting.
+  /// Tracks the elapsed time (used to stamp new reservations' deadlines) and
+  /// requests a paint once the earliest reservation's deadline has passed,
+  /// so that the delayed animation starts there. The ticker keeps running
+  /// until the reservation queue is emptied ([DelayedAnimationCancel]).
   void _onDelayTick(Duration elapsed) {
-    if (elapsed < _delay) return;
-    _delayTicker?.stop();
-    _delayExpired = true;
-    _attemptPaint();
+    _delayElapsed = elapsed;
+    final reservations = _pendingDelay?.reservations;
+    if (reservations == null || reservations.isEmpty) return;
+    if (elapsed >= reservations.first.deadline) {
+      _attemptPaint();
+    }
   }
 
   void _verticalControllerListener() {
