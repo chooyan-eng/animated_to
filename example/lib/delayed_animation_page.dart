@@ -7,12 +7,12 @@ import 'package:flutter/material.dart';
 /// to animate, so a single rebuild produces a staggered (cascading) motion.
 ///
 /// Things to try:
-/// - Tap once and watch the cascade: boxes further down start later.
-/// - Tap again quickly while boxes are still waiting: the destination is
-///   updated without resetting each box's deadline.
-/// - Tap again while boxes are animating: a running animation keeps going to
-///   its original destination and is redirected only after the new delay
-///   expires.
+/// - Press "Move" once and watch the cascade: boxes further down start later.
+/// - Press "Move" again while boxes are still waiting: each press reserves
+///   its own start (deadlines are never reset), so the first reservation
+///   departs on time and the next one redirects afterwards — including
+///   coming back when the destination is the original position.
+/// - Turn off "animate" to compare with instant (non-animated) updates.
 class DelayedAnimationPage extends StatefulWidget {
   const DelayedAnimationPage({super.key});
 
@@ -25,6 +25,7 @@ class _DelayedAnimationPageState extends State<DelayedAnimationPage> {
 
   bool _isLeft = true;
   bool _useSpring = false;
+  bool _animationEnabled = true;
 
   final _keys = List.generate(_boxCount, (index) => GlobalKey());
 
@@ -40,6 +41,12 @@ class _DelayedAnimationPageState extends State<DelayedAnimationPage> {
             style: TextStyle(color: Colors.white),
           ),
           actions: [
+            const Text('animate', style: TextStyle(color: Colors.white)),
+            Switch(
+              value: _animationEnabled,
+              onChanged: (value) => setState(() => _animationEnabled = value),
+            ),
+            const SizedBox(width: 8),
             const Text('spring', style: TextStyle(color: Colors.white)),
             Switch(
               value: _useSpring,
@@ -49,34 +56,35 @@ class _DelayedAnimationPageState extends State<DelayedAnimationPage> {
           ],
         ),
         backgroundColor: Colors.grey[900],
-        body: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => setState(() => _isLeft = !_isLeft),
-          child: SizedBox.expand(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: _isLeft
-                    ? CrossAxisAlignment.start
-                    : CrossAxisAlignment.end,
-                children: [
-                  for (var i = 0; i < _boxCount; i++)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _buildBox(i),
-                    ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Text(
-                      'Tap anywhere to move the boxes.\n'
-                      'Each box starts 150ms after the one above it.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey[500]),
-                    ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => setState(() => _isLeft = !_isLeft),
+          icon: const Icon(Icons.swap_horiz),
+          label: const Text('Move'),
+        ),
+        body: SizedBox.expand(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment:
+                  _isLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+              children: [
+                for (var i = 0; i < _boxCount; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _buildBox(i),
                   ),
-                ],
-              ),
+                const SizedBox(height: 16),
+                Center(
+                  child: Text(
+                    'Press "Move" to move the boxes.\n'
+                    'Each box starts 150ms after the one above it.\n'
+                    'Turn off "animate" to compare with instant updates.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey[500]),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -104,11 +112,13 @@ class _DelayedAnimationPageState extends State<DelayedAnimationPage> {
         ? AnimatedTo.spring(
             globalKey: _keys[index],
             delay: delay,
+            enabled: _animationEnabled,
             child: child,
           )
         : AnimatedTo.curve(
             globalKey: _keys[index],
             delay: delay,
+            enabled: _animationEnabled,
             duration: const Duration(milliseconds: 400),
             curve: Curves.easeInOut,
             child: child,
