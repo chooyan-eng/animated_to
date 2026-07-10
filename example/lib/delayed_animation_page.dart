@@ -29,6 +29,18 @@ class _DelayedAnimationPageState extends State<DelayedAnimationPage> {
 
   final _keys = List.generate(_boxCount, (index) => GlobalKey());
 
+  /// Shared with [SingleChildScrollView] and every [AnimatedTo] so that
+  /// scrolling is not misdetected as a position change (see
+  /// [AnimatedTo.verticalController]). Try scrolling while boxes are still
+  /// waiting: the held positions follow the scroll.
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedToBoundary(
@@ -61,29 +73,31 @@ class _DelayedAnimationPageState extends State<DelayedAnimationPage> {
           icon: const Icon(Icons.swap_horiz),
           label: const Text('Move'),
         ),
-        body: SizedBox.expand(
+        body: SingleChildScrollView(
+          controller: _scrollController,
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment:
                   _isLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end,
               children: [
-                for (var i = 0; i < _boxCount; i++)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _buildBox(i),
-                  ),
-                const SizedBox(height: 16),
                 Center(
                   child: Text(
                     'Press "Move" to move the boxes.\n'
                     'Each box starts 150ms after the one above it.\n'
-                    'Turn off "animate" to compare with instant updates.',
+                    'Turn off "animate" to compare with instant updates.\n'
+                    'Scroll while boxes are waiting: held positions follow.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey[500]),
                   ),
                 ),
+                const SizedBox(height: 120),
+                for (var i = 0; i < _boxCount; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 48),
+                    child: _buildBox(i),
+                  ),
+                const SizedBox(height: 400),
               ],
             ),
           ),
@@ -113,12 +127,14 @@ class _DelayedAnimationPageState extends State<DelayedAnimationPage> {
             globalKey: _keys[index],
             delay: delay,
             enabled: _animationEnabled,
+            verticalController: _scrollController,
             child: child,
           )
         : AnimatedTo.curve(
             globalKey: _keys[index],
             delay: delay,
             enabled: _animationEnabled,
+            verticalController: _scrollController,
             duration: const Duration(milliseconds: 400),
             curve: Curves.easeInOut,
             child: child,
