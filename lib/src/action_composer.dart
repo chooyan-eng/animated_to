@@ -28,9 +28,17 @@ import 'package:flutter/widgets.dart';
 /// In this situation, no animation should be performed, this means:
 /// - If animation is in progress, where [isAnimating] is [true],
 ///   it should be cancelled and painted at the destination position([offset]) immediately.
+/// - If a delayed animation is waiting to start, where [isWaiting] is [true],
+///   it should be discarded.
 /// - If no animation is not happening, just paint at [offset].
-List<MutationAction> composeDisabled(bool isAnimating, Offset offset) => [
+List<MutationAction> composeDisabled(
+  bool isAnimating,
+  Offset offset, {
+  bool isWaiting = false,
+}) =>
+    [
       if (isAnimating) AnimationCancel(),
+      if (isWaiting) DelayedAnimationCancel(),
       PaintChild.requireContext(offset),
     ];
 
@@ -126,6 +134,19 @@ List<MutationAction> composeAnimation({
 
   /// Cached offsets from the last frame.
   required OffsetCache cache,
+
+  /// How long to wait after a position change before starting the animation.
+  /// [Duration.zero] means the animation starts immediately, which is
+  /// exactly the same behavior as before this parameter was introduced.
+  Duration delay = Duration.zero,
+
+  /// The waiting state of a delayed animation scheduled in a previous frame,
+  /// or null if no delayed animation is waiting.
+  PendingDelay? pendingDelay,
+
+  /// Whether the delay of [pendingDelay] has expired, meaning the delayed
+  /// animation should start in this frame. Never true while [pendingDelay] is null.
+  bool delayExpired = false,
 }) =>
     ((
       // If ancestor has changed, which means this [AnimatedTo] moves to another branch of the tree,
@@ -148,10 +169,23 @@ List<MutationAction> composeAnimation({
           currentAncestorGlobalOffset: ancestorGlobalOffset,
         ).let(
           (hasChangedPosition) => [
-            ...switch ((
-              isAnimating: animationValue != null,
-              hasPositionChanged: hasChangedPosition,
-            )) {
+            ...composeDelayed(
+                  isAnimating: animationValue != null,
+                  hasChangedPosition: hasChangedPosition,
+                  layoutDelta: effectiveGlobalOffsets.current -
+                      effectiveGlobalOffsets.cached,
+                  animationValue: animationValue,
+                  velocity: velocity,
+                  offset: offset,
+                  startOffset: cache.startOffset,
+                  delay: delay,
+                  pendingDelay: pendingDelay,
+                  delayExpired: delayExpired,
+                ) ??
+                switch ((
+                  isAnimating: animationValue != null,
+                  hasPositionChanged: hasChangedPosition,
+                )) {
               (isAnimating: false, hasPositionChanged: false) => [
                   PaintChild.requireContext(offset),
                 ],
@@ -200,6 +234,81 @@ List<MutationAction> composeAnimation({
             },
           ],
         )!)!;
+
+/// Composes mutation actions for the "delayed animation" feature of [composeAnimation].
+/// Returns null when the delay feature doesn't apply to this frame,
+/// meaning [composeAnimation] should fall back to the immediate behavior,
+/// which is exactly the behavior before the delay feature was introduced.
+///
+/// [layoutDelta] is how much this [AnimatedTo] itself has moved since the last frame
+/// in the effective global coordinates (which is zero when the position hasn't changed).
+/// While waiting, the "held" position is derived as [offset] minus the accumulated
+/// [PendingDelay.layoutShift], so that scrolling — which moves [offset] but not
+/// the global offset — is followed naturally, while layout changes — which move
+/// the global offset — are compensated and don't move the held child.
+/// This also covers the case where scrolling and a layout change happen in the same frame.
+List<MutationAction>? composeDelayed({
+  required bool isAnimating,
+  required bool hasChangedPosition,
+  required Offset layoutDelta,
+  required Offset? animationValue,
+  required Offset? velocity,
+  required Offset offset,
+  required Offset? startOffset,
+  required Duration delay,
+  required PendingDelay? pendingDelay,
+  required bool delayExpired,
+}) {
+  // While a previous animation is running, the held position is its current
+  // painted position (with the usual scroll adjustment); otherwise it's the
+  // layout position. Either way the accumulated layout shift is subtracted
+  // so that only scrolling follows.
+  Offset holdPosition(Offset shift) => isAnimating
+      ? animationValue! + (offset - startOffset!) - shift
+      : offset - shift;
+
+  if (pendingDelay != null) {
+    final shift = pendingDelay.layoutShift +
+        (hasChangedPosition ? layoutDelta : Offset.zero);
+
+    if (!delayExpired) {
+      // Still waiting: keep painting at the held position. If the position
+      // changed again during the wait, only the accumulated shift is updated;
+      // the deadline is NOT reset, and the destination is always the latest
+      // [offset] resolved when the delay expires.
+      return [
+        if (hasChangedPosition)
+          PendingDelayMutation(PendingDelay(layoutShift: shift)),
+        PaintChild.requireContext(holdPosition(shift)),
+      ];
+    }
+
+    // The delay has expired: start the animation from the held position
+    // (or from the current animated position if the previous animation is
+    // still running, keeping its velocity) to the latest destination.
+    return Journey(from: holdPosition(shift), to: offset).let((journey) => [
+          DelayedAnimationCancel(),
+          ..._composeStartAnimation(
+            isAnimating,
+            journey,
+            velocity: isAnimating ? velocity : null,
+          ),
+          PaintChild.requireContext(journey.from),
+        ])!;
+  }
+
+  if (hasChangedPosition && delay > Duration.zero) {
+    // The position has changed and a delay is requested: don't start the
+    // animation yet. A running animation keeps going to its original
+    // destination; a static child keeps being painted at its old position.
+    return [
+      DelayedAnimationSchedule(PendingDelay(layoutShift: layoutDelta)),
+      PaintChild.requireContext(holdPosition(layoutDelta)),
+    ];
+  }
+
+  return null;
+}
 
 /// Determines whether the position has changed compared to the last frame.
 /// This can't be easily determined by simply comparing [lastGlobalOffset] and [currentGlobalOffset],

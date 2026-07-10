@@ -1,3 +1,4 @@
+import 'package:animated_to/src/helper.dart';
 import 'package:animated_to/src/journey.dart';
 import 'package:flutter/rendering.dart';
 
@@ -26,6 +27,28 @@ final class AnimationEnd extends MutationAction {}
 
 /// [MutationAction] to cancel the ongoing animation.
 final class AnimationCancel extends MutationAction {}
+
+/// [MutationAction] to schedule a delayed animation.
+/// The receiver should start measuring the delay (with a ticker obtained
+/// from its vsync) and keep [pending] as the initial waiting state.
+final class DelayedAnimationSchedule extends MutationAction {
+  DelayedAnimationSchedule(this.pending);
+
+  /// The initial waiting state of the delayed animation.
+  final PendingDelay pending;
+}
+
+/// [MutationAction] to update the waiting state of a scheduled delayed animation.
+/// This does NOT reset the delay deadline; only the accumulated
+/// [PendingDelay.layoutShift] is updated.
+final class PendingDelayMutation extends MutationAction {
+  PendingDelayMutation(this.value);
+  final PendingDelay value;
+}
+
+/// [MutationAction] to discard a scheduled delayed animation.
+/// The receiver should stop measuring the delay and clear the waiting state.
+final class DelayedAnimationCancel extends MutationAction {}
 
 /// [MutationAction] to paint the child at [offset].
 /// Because paint operation requires [PaintingContext], which is not

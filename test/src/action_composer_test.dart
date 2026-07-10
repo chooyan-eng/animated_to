@@ -19,6 +19,15 @@ Matcher endsAnimation() => _ContainsActionMatcher<AnimationEnd>();
 /// Matcher that checks if actions contain PaintChild with specific offset
 Matcher paintsChildAt(Offset offset) => _PaintsAtMatcher(offset);
 
+/// Matcher that checks if actions contain DelayedAnimationSchedule
+Matcher schedulesDelay() => _ContainsActionMatcher<DelayedAnimationSchedule>();
+
+/// Matcher that checks if actions contain PendingDelayMutation
+Matcher updatesPendingDelay() => _ContainsActionMatcher<PendingDelayMutation>();
+
+/// Matcher that checks if actions contain DelayedAnimationCancel
+Matcher cancelsDelay() => _ContainsActionMatcher<DelayedAnimationCancel>();
+
 /// Matcher that checks if actions contain JourneyMutation with specific from/to
 Matcher hasJourney({Offset? from, Offset? to}) =>
     _HasJourneyMatcher(from: from, to: to);
@@ -508,6 +517,288 @@ void main() {
 
       // First frame with empty cache, position considered unchanged
       expect(actions, paintsChildAt(offset));
+    });
+  });
+
+  group('composeAnimation with delay', () {
+    const delay = Duration(milliseconds: 200);
+
+    test('should schedule delayed animation instead of starting when idle', () {
+      const offset = Offset(10, 20);
+      final cache = OffsetCache(
+        lastOffset: offset,
+        lastGlobalOffset: const Offset(100, 200),
+        lastBoundaryOffset: const Offset(100, 200),
+        startOffset: offset,
+      );
+
+      final actions = composeAnimation(
+        animationValue: null,
+        offset: offset,
+        globalOffset: const Offset(120, 210),
+        boundaryOffset: const Offset(120, 210),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        pendingDelay: null,
+      );
+
+      expect(actions, schedulesDelay());
+      expect(actions, isNot(startsAnimation()));
+      // held at the old position
+      expect(actions, paintsChildAt(const Offset(-10, 10)));
+      final pending =
+          actions.whereType<DelayedAnimationSchedule>().first.pending;
+      expect(pending.layoutShift, const Offset(20, 10));
+    });
+
+    test('should keep running animation when scheduling during animation', () {
+      // animating from (0,0) to (10,20), currently at (5,10),
+      // then the layout moves by (20,10).
+      final cache = OffsetCache(
+        lastOffset: const Offset(10, 20),
+        lastGlobalOffset: const Offset(100, 200),
+        lastBoundaryOffset: const Offset(100, 200),
+        startOffset: const Offset(10, 20),
+      );
+
+      final actions = composeAnimation(
+        animationValue: const Offset(5, 10),
+        offset: const Offset(30, 30),
+        globalOffset: const Offset(120, 210),
+        boundaryOffset: const Offset(120, 210),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        pendingDelay: null,
+      );
+
+      expect(actions, schedulesDelay());
+      expect(actions, isNot(cancelsAnimation()));
+      expect(actions, isNot(startsAnimation()));
+      // the running animation continues undisturbed
+      expect(actions, paintsChildAt(const Offset(5, 10)));
+    });
+
+    test('should follow scroll while holding position during wait', () {
+      // held at (-10,10); content scrolled by (0,-5) since then.
+      final cache = OffsetCache(
+        lastOffset: const Offset(10, 20),
+        lastGlobalOffset: const Offset(100, 200),
+        lastBoundaryOffset: const Offset(100, 200),
+        startOffset: const Offset(10, 20),
+      );
+
+      final actions = composeAnimation(
+        animationValue: null,
+        offset: const Offset(10, 15),
+        globalOffset: const Offset(100, 200),
+        boundaryOffset: const Offset(100, 200),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        pendingDelay: const PendingDelay(layoutShift: Offset(20, 10)),
+      );
+
+      expect(actions, isNot(startsAnimation()));
+      expect(actions, isNot(updatesPendingDelay()));
+      expect(actions, paintsChildAt(const Offset(-10, 5)));
+    });
+
+    test(
+        'should update destination only, without resetting schedule, '
+        'when position changes again during wait', () {
+      final cache = OffsetCache(
+        lastOffset: const Offset(10, 20),
+        lastGlobalOffset: const Offset(100, 200),
+        lastBoundaryOffset: const Offset(100, 200),
+        startOffset: const Offset(10, 20),
+      );
+
+      final actions = composeAnimation(
+        animationValue: null,
+        offset: const Offset(15, 25),
+        globalOffset: const Offset(105, 205),
+        boundaryOffset: const Offset(105, 205),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        pendingDelay: const PendingDelay(layoutShift: Offset(20, 10)),
+      );
+
+      expect(actions, isNot(startsAnimation()));
+      expect(actions, isNot(schedulesDelay()));
+      expect(actions, updatesPendingDelay());
+      final pending = actions.whereType<PendingDelayMutation>().first.value;
+      expect(pending.layoutShift, const Offset(25, 15));
+      // still held at the same position
+      expect(actions, paintsChildAt(const Offset(-10, 10)));
+    });
+
+    test(
+        'should follow scroll only when scroll and layout change '
+        'happen in the same frame during wait', () {
+      // scroll (0,-5) and layout move (5,5) at once.
+      final cache = OffsetCache(
+        lastOffset: const Offset(10, 20),
+        lastGlobalOffset: const Offset(100, 200),
+        lastBoundaryOffset: const Offset(100, 200),
+        startOffset: const Offset(10, 20),
+      );
+
+      final actions = composeAnimation(
+        animationValue: null,
+        offset: const Offset(15, 20),
+        globalOffset: const Offset(105, 205),
+        boundaryOffset: const Offset(105, 205),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        pendingDelay: const PendingDelay(layoutShift: Offset(20, 10)),
+      );
+
+      expect(actions, updatesPendingDelay());
+      // held position (-10,10) followed the scroll (0,-5)
+      expect(actions, paintsChildAt(const Offset(-10, 5)));
+    });
+
+    test('should start animation from held position when delay expires', () {
+      final cache = OffsetCache(
+        lastOffset: const Offset(10, 20),
+        lastGlobalOffset: const Offset(100, 200),
+        lastBoundaryOffset: const Offset(100, 200),
+        startOffset: const Offset(10, 20),
+      );
+
+      final actions = composeAnimation(
+        animationValue: null,
+        offset: const Offset(10, 20),
+        globalOffset: const Offset(100, 200),
+        boundaryOffset: const Offset(100, 200),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        pendingDelay: const PendingDelay(layoutShift: Offset(20, 10)),
+        delayExpired: true,
+      );
+
+      expect(actions, cancelsDelay());
+      expect(actions, startsAnimation());
+      expect(actions, isNot(cancelsAnimation()));
+      expect(actions,
+          hasJourney(from: const Offset(-10, 10), to: const Offset(10, 20)));
+      expect(actions, paintsChildAt(const Offset(-10, 10)));
+    });
+
+    test(
+        'should redirect from current animated position with velocity '
+        'when delay expires during animation', () {
+      final cache = OffsetCache(
+        lastOffset: const Offset(30, 30),
+        lastGlobalOffset: const Offset(120, 210),
+        lastBoundaryOffset: const Offset(120, 210),
+        startOffset: const Offset(10, 20),
+      );
+
+      final actions = composeAnimation(
+        animationValue: const Offset(5, 10),
+        velocity: const Offset(3, 4),
+        offset: const Offset(30, 30),
+        globalOffset: const Offset(120, 210),
+        boundaryOffset: const Offset(120, 210),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        pendingDelay: const PendingDelay(layoutShift: Offset(20, 10)),
+        delayExpired: true,
+      );
+
+      expect(actions, cancelsDelay());
+      expect(actions, cancelsAnimation());
+      expect(actions, startsAnimation());
+      expect(actions,
+          hasJourney(from: const Offset(5, 10), to: const Offset(30, 30)));
+      expect(actions.whereType<AnimationStart>().first.velocity,
+          const Offset(3, 4));
+    });
+
+    test(
+        'should start from the old destination when the previous animation '
+        'completed during wait', () {
+      final cache = OffsetCache(
+        lastOffset: const Offset(30, 30),
+        lastGlobalOffset: const Offset(120, 210),
+        lastBoundaryOffset: const Offset(120, 210),
+        startOffset: const Offset(10, 20),
+      );
+
+      final actions = composeAnimation(
+        animationValue: null,
+        offset: const Offset(30, 30),
+        globalOffset: const Offset(120, 210),
+        boundaryOffset: const Offset(120, 210),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        pendingDelay: const PendingDelay(layoutShift: Offset(20, 10)),
+        delayExpired: true,
+      );
+
+      expect(actions, cancelsDelay());
+      expect(actions, startsAnimation());
+      expect(actions,
+          hasJourney(from: const Offset(10, 20), to: const Offset(30, 30)));
+    });
+
+    test('should start animation immediately when delay is zero', () {
+      const offset = Offset(10, 20);
+      final cache = OffsetCache(
+        lastOffset: offset,
+        lastGlobalOffset: const Offset(100, 200),
+        lastBoundaryOffset: const Offset(100, 200),
+        startOffset: offset,
+      );
+
+      final actions = composeAnimation(
+        animationValue: null,
+        offset: offset,
+        globalOffset: const Offset(120, 210),
+        boundaryOffset: const Offset(120, 210),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        pendingDelay: null,
+      );
+
+      expect(actions, isNot(schedulesDelay()));
+      expect(actions, startsAnimation());
+      expect(actions, hasJourney(from: const Offset(-10, 10), to: offset));
+    });
+  });
+
+  group('composeDisabled with waiting delay', () {
+    test('should discard the waiting delay when disabled', () {
+      const offset = Offset(10, 20);
+
+      final actions = composeDisabled(true, offset, isWaiting: true);
+
+      expect(actions, cancelsAnimation());
+      expect(actions, cancelsDelay());
+      expect(actions, paintsChildAt(offset));
+    });
+
+    test('should not emit delay cancellation when not waiting', () {
+      final actions = composeDisabled(false, const Offset(5, 10));
+
+      expect(actions, isNot(cancelsDelay()));
     });
   });
 }

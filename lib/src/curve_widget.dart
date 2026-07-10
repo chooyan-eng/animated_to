@@ -6,6 +6,7 @@ import 'package:animated_to/src/journey.dart';
 import 'package:animated_to/src/size_maintainer.dart';
 import 'package:animated_to/src/widget.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 class CurveAnimatedTo extends StatefulWidget {
@@ -13,6 +14,7 @@ class CurveAnimatedTo extends StatefulWidget {
     required this.globalKey,
     this.duration,
     this.curve,
+    this.delay = Duration.zero,
     this.appearingFrom,
     this.slidingFrom,
     this.enabled = true,
@@ -32,6 +34,9 @@ class CurveAnimatedTo extends StatefulWidget {
 
   /// [Curve] to animate the child to the new position.
   final Curve? curve;
+
+  /// [Duration] to wait after a position change before starting the animation.
+  final Duration delay;
 
   /// If [appearingFrom] is given, [child] will start animation from [appearingFrom] in the first frame.
   /// This indicates absolute position in the global coordinate system.
@@ -88,6 +93,7 @@ class _CurveAnimatedToState extends State<CurveAnimatedTo>
         vsync: this,
         duration: widget.duration ?? const Duration(milliseconds: 300),
         curve: widget.curve ?? Curves.easeInOut,
+        delay: widget.delay,
         appearingFrom: widget.appearingFrom,
         slidingFrom: widget.slidingFrom,
         enabled: widget.enabled,
@@ -109,6 +115,7 @@ class _CurveAnimatedToState extends State<CurveAnimatedTo>
 class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
   final Duration duration;
   final Curve curve;
+  final Duration delay;
   final TickerProvider vsync;
   final Offset? appearingFrom;
   final Offset? slidingFrom;
@@ -123,6 +130,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
     required this.vsync,
     this.duration = const Duration(milliseconds: 300),
     this.curve = Curves.easeInOut,
+    this.delay = Duration.zero,
     this.appearingFrom,
     this.slidingFrom,
     this.enabled = true,
@@ -137,6 +145,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
     return _RenderAnimatedTo(
       duration: duration,
       curve: curve,
+      delay: delay,
       vsync: vsync,
       appearingFrom: appearingFrom,
       slidingFrom: slidingFrom,
@@ -156,6 +165,7 @@ class _AnimatedToRenderObjectWidget extends SingleChildRenderObjectWidget {
     renderObject
       ..duration = duration
       ..curve = curve
+      ..delay = delay
       ..vsync = vsync
       ..appearingFrom = appearingFrom
       ..slidingFrom = slidingFrom
@@ -174,6 +184,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   _RenderAnimatedTo({
     required Duration duration,
     required Curve curve,
+    required Duration delay,
     required TickerProvider vsync,
     Offset? appearingFrom,
     Offset? slidingFrom,
@@ -186,6 +197,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
     RenderAnimatedTo? ancestor,
   })  : _duration = duration,
         _curve = curve,
+        _delay = delay,
         _vsync = vsync,
         _appearingFrom = appearingFrom,
         _slidingFrom = slidingFrom,
@@ -213,6 +225,11 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
   Curve _curve;
   set curve(Curve value) {
     _curve = value;
+  }
+
+  Duration _delay;
+  set delay(Duration value) {
+    _delay = value;
   }
 
   TickerProvider _vsync;
@@ -269,6 +286,17 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
 
   /// cache of [Offset]s for calculation
   var _cache = OffsetCache();
+
+  /// state of a delayed animation waiting for [_delay] to expire, if any.
+  PendingDelay? _pendingDelay;
+
+  /// ticker to measure [_delay]. Obtained from [_vsync] so that it stays
+  /// consistent with [TickerMode].
+  Ticker? _delayTicker;
+
+  /// whether [_delay] has expired and the delayed animation should start
+  /// in the next paint.
+  bool _delayExpired = false;
 
   /// Reference to the ancestor [AnimatedToBoundary]'s render object
   RenderAnimatedToBoundary? _boundary;
@@ -358,6 +386,7 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
       (false, _) => composeDisabled(
           _controller?.isAnimating == true,
           offset,
+          isWaiting: _pendingDelay != null,
         ),
       // if either of [_appearingFrom] or [_slidingFrom] is given,
       // animation should be start from that position in the first frame.
@@ -385,6 +414,9 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
       ancestorChanged: ancestorChanged,
       ancestorGlobalOffset: _ancestor?.globalOffset,
       cache: _cache,
+      delay: _delay,
+      pendingDelay: _pendingDelay,
+      delayExpired: _delayExpired,
     );
 
     _applyMutation(
@@ -397,6 +429,18 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
       switch (action) {
         case JourneyMutation(:final value):
           _journey = value;
+        case DelayedAnimationSchedule(:final pending):
+          _pendingDelay = pending;
+          _delayExpired = false;
+          _delayTicker?.dispose();
+          _delayTicker = _vsync.createTicker(_onDelayTick)..start();
+        case PendingDelayMutation(:final value):
+          _pendingDelay = value;
+        case DelayedAnimationCancel():
+          _delayTicker?.dispose();
+          _delayTicker = null;
+          _pendingDelay = null;
+          _delayExpired = false;
         case AnimationStart(:final journey):
           // Register with boundary when animation starts
           if (hitTestEnabled) _boundary?.registerAnimatingWidget(this);
@@ -465,6 +509,9 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
 
   @override
   void dispose() {
+    _delayTicker?.dispose();
+    _delayTicker = null;
+    _pendingDelay = null;
     if (_controller != null) {
       _applyMutation(
         [_controller!.isAnimating ? AnimationCancel() : AnimationEnd()],
@@ -487,6 +534,16 @@ class _RenderAnimatedTo extends RenderProxyBox implements RenderAnimatedTo {
     if (owner?.debugDoingPaint != true) {
       markNeedsPaint();
     }
+  }
+
+  /// called every tick while a delayed animation is waiting.
+  /// Once [_delay] has passed since the delay was scheduled,
+  /// requests a paint so that the delayed animation starts there.
+  void _onDelayTick(Duration elapsed) {
+    if (elapsed < _delay) return;
+    _delayTicker?.stop();
+    _delayExpired = true;
+    _attemptPaint();
   }
 
   void _verticalControllerListener() {

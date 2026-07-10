@@ -41,6 +41,7 @@ class AnimatedTo extends StatelessWidget {
     required this.globalKey,
     this.curve,
     this.duration,
+    this.delay = Duration.zero,
     this.appearingFrom,
     this.slidingFrom,
     this.enabled = true,
@@ -59,6 +60,7 @@ class AnimatedTo extends StatelessWidget {
     required GlobalKey globalKey,
     Curve curve = Curves.easeInOut,
     Duration duration = const Duration(milliseconds: 300),
+    Duration delay = Duration.zero,
     Offset? appearingFrom,
     Offset? slidingFrom,
     bool enabled = true,
@@ -73,6 +75,7 @@ class AnimatedTo extends StatelessWidget {
       globalKey: globalKey,
       curve: curve,
       duration: duration,
+      delay: delay,
       appearingFrom: appearingFrom,
       slidingFrom: slidingFrom,
       enabled: enabled,
@@ -89,6 +92,7 @@ class AnimatedTo extends StatelessWidget {
   factory AnimatedTo.spring({
     required GlobalKey globalKey,
     SpringDescription? description,
+    Duration delay = Duration.zero,
     Offset Function()? velocityBuilder,
     Offset? appearingFrom,
     Offset? slidingFrom,
@@ -103,6 +107,7 @@ class AnimatedTo extends StatelessWidget {
     return AnimatedTo._(
       globalKey: globalKey,
       description: description,
+      delay: delay,
       velocityBuilder: velocityBuilder,
       appearingFrom: appearingFrom,
       slidingFrom: slidingFrom,
@@ -126,6 +131,13 @@ class AnimatedTo extends StatelessWidget {
   /// [AnimatedTo.curve] only.
   /// [Curve] to animate the child to the new position.
   final Curve? curve;
+
+  /// [Duration] to wait after a position change is detected
+  /// before starting the animation. While waiting, the child keeps being
+  /// painted at its previous position (following scroll), and further
+  /// position changes only update the destination without resetting the delay.
+  /// Defaults to [Duration.zero], which starts the animation immediately.
+  final Duration delay;
 
   /// [AnimatedTo.spring] only.
   /// [SpringDescription] to animate the child to the new position.
@@ -196,6 +208,7 @@ class AnimatedTo extends StatelessWidget {
           globalKey: globalKey,
           curve: curve!,
           duration: duration,
+          delay: delay,
           appearingFrom: appearingFrom,
           slidingFrom: slidingFrom,
           enabled: enabled,
@@ -209,6 +222,7 @@ class AnimatedTo extends StatelessWidget {
       : SpringAnimatedTo(
           globalKey: globalKey,
           description: description ?? SpringDescription.withDurationAndBounce(),
+          delay: delay,
           velocityBuilder: velocityBuilder,
           appearingFrom: appearingFrom,
           slidingFrom: slidingFrom,
