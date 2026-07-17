@@ -3,15 +3,19 @@ import 'package:flutter/material.dart';
 
 /// Demonstrates the `delay` argument of [AnimatedTo].
 ///
-/// Each box waits `index * 150ms` after its position changes before starting
-/// to animate, so a single rebuild produces a staggered (cascading) motion.
+/// Three circles travel around the four corners of the screen, alternating
+/// between a horizontal row and a vertical column:
+///
+///   bottom-left (row) -> top-left (column) -> top-right (row)
+///     -> bottom-right (column) -> back to bottom-left
+///
+/// The first circle moves immediately and the others follow one by one
+/// (index * 200ms), trailing behind like a queue.
 ///
 /// Things to try:
-/// - Press "Move" once and watch the cascade: boxes further down start later.
-/// - Press "Move" again while boxes are still waiting: each press reserves
-///   its own start (deadlines are never reset), so the first reservation
-///   departs on time and the next one redirects afterwards — including
-///   coming back when the destination is the original position.
+/// - Press "Move" repeatedly before the trailing circles have departed:
+///   every press reserves its own start (deadlines are never reset), so each
+///   circle still visits the corners in order, just later than the leader.
 /// - Turn off "animate" to compare with instant (non-animated) updates.
 class DelayedAnimationPage extends StatefulWidget {
   const DelayedAnimationPage({super.key});
@@ -21,28 +25,29 @@ class DelayedAnimationPage extends StatefulWidget {
 }
 
 class _DelayedAnimationPageState extends State<DelayedAnimationPage> {
-  static const _boxCount = 6;
+  static const _circleCount = 3;
 
-  bool _isLeft = true;
+  /// 0: bottom-left (row), 1: top-left (column),
+  /// 2: top-right (row), 3: bottom-right (column)
+  var _corner = 0;
   bool _useSpring = false;
   bool _animationEnabled = true;
 
-  final _keys = List.generate(_boxCount, (index) => GlobalKey());
+  final _keys = List.generate(_circleCount, (index) => GlobalKey());
 
-  /// Shared with [SingleChildScrollView] and every [AnimatedTo] so that
-  /// scrolling is not misdetected as a position change (see
-  /// [AnimatedTo.verticalController]). Try scrolling while boxes are still
-  /// waiting: the held positions follow the scroll.
-  final _scrollController = ScrollController();
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
+  static const _alignments = [
+    Alignment.bottomLeft,
+    Alignment.topLeft,
+    Alignment.topRight,
+    Alignment.bottomRight,
+  ];
 
   @override
   Widget build(BuildContext context) {
+    final circles = [
+      for (var i = 0; i < _circleCount; i++) _buildCircle(i),
+    ];
+
     return AnimatedToBoundary(
       child: Scaffold(
         appBar: AppBar(
@@ -69,56 +74,52 @@ class _DelayedAnimationPageState extends State<DelayedAnimationPage> {
         ),
         backgroundColor: Colors.grey[900],
         floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => setState(() => _isLeft = !_isLeft),
-          icon: const Icon(Icons.swap_horiz),
+          onPressed: () => setState(() => _corner = (_corner + 1) % 4),
+          icon: const Icon(Icons.rotate_right),
           label: const Text('Move'),
         ),
-        body: SingleChildScrollView(
-          controller: _scrollController,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment:
-                  _isLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end,
-              children: [
-                Center(
-                  child: Text(
-                    'Press "Move" to move the boxes.\n'
-                    'Each box starts 150ms after the one above it.\n'
-                    'Turn off "animate" to compare with instant updates.\n'
-                    'Scroll while boxes are waiting: held positions follow.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey[500]),
-                  ),
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Stack(
+            children: [
+              Center(
+                child: Text(
+                  'Press "Move" to send the circles to the next corner.\n'
+                  'The leader departs immediately; the others follow\n'
+                  '200ms and 400ms behind.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[500]),
                 ),
-                const SizedBox(height: 120),
-                for (var i = 0; i < _boxCount; i++)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 48),
-                    child: _buildBox(i),
-                  ),
-                const SizedBox(height: 400),
-              ],
-            ),
+              ),
+              Align(
+                alignment: _alignments[_corner],
+                child: _corner.isEven
+                    ? Row(mainAxisSize: MainAxisSize.min, children: circles)
+                    : Column(mainAxisSize: MainAxisSize.min, children: circles),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildBox(int index) {
-    final delay = Duration(milliseconds: 150 * index);
-    final child = Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        color: Colors.primaries[index * 2 % Colors.primaries.length],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        '${delay.inMilliseconds}ms',
-        style: const TextStyle(color: Colors.white, fontSize: 12),
+  Widget _buildCircle(int index) {
+    final delay = Duration(milliseconds: 200 * index);
+    final child = Padding(
+      padding: const EdgeInsets.all(4),
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: Colors.primaries[index * 4 % Colors.primaries.length],
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          '${delay.inMilliseconds}ms',
+          style: const TextStyle(color: Colors.white, fontSize: 11),
+        ),
       ),
     );
 
@@ -127,14 +128,12 @@ class _DelayedAnimationPageState extends State<DelayedAnimationPage> {
             globalKey: _keys[index],
             delay: delay,
             enabled: _animationEnabled,
-            verticalController: _scrollController,
             child: child,
           )
         : AnimatedTo.curve(
             globalKey: _keys[index],
             delay: delay,
             enabled: _animationEnabled,
-            verticalController: _scrollController,
             duration: const Duration(milliseconds: 400),
             curve: Curves.easeInOut,
             child: child,
