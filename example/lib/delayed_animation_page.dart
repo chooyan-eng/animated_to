@@ -78,26 +78,32 @@ class _DelayedAnimationPageState extends State<DelayedAnimationPage> {
           icon: const Icon(Icons.rotate_right),
           label: const Text('Move'),
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Stack(
-            children: [
-              Center(
-                child: Text(
-                  'Press "Move" to send the circles to the next corner.\n'
-                  'The leader departs immediately; the others follow\n'
-                  '200ms and 400ms behind.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey[500]),
+        body: SafeArea(
+          top: false,
+          child: Padding(
+            // The bottom inset keeps the movement area above the FAB:
+            // 16 (FAB margin) + 48 (extended FAB height) + 8 (gap) + 24 (base).
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
+            child: Stack(
+              children: [
+                Center(
+                  child: Text(
+                    'Press "Move" to send the circles to the next corner.\n'
+                    'The leader departs immediately; the others follow\n'
+                    '200ms and 400ms behind.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey[500]),
+                  ),
                 ),
-              ),
-              Align(
-                alignment: _alignments[_corner],
-                child: _corner.isEven
-                    ? Row(mainAxisSize: MainAxisSize.min, children: circles)
-                    : Column(mainAxisSize: MainAxisSize.min, children: circles),
-              ),
-            ],
+                Align(
+                  alignment: _alignments[_corner],
+                  child: _corner.isEven
+                      ? Row(mainAxisSize: MainAxisSize.min, children: circles)
+                      : Column(
+                          mainAxisSize: MainAxisSize.min, children: circles),
+                ),
+              ],
+            ),
           ),
         ),
       ),
