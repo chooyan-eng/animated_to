@@ -3,19 +3,15 @@ import 'package:flutter/material.dart';
 
 /// Demonstrates the `delay` argument of [AnimatedTo].
 ///
-/// Three circles travel around the four corners of the screen, alternating
-/// between a horizontal row and a vertical column:
-///
-///   bottom-left (row) -> top-left (column) -> top-right (row)
-///     -> bottom-right (column) -> back to bottom-left
-///
-/// The first circle moves immediately and the others follow one by one
-/// (index * 200ms), trailing behind like a queue.
+/// Five circles are lined up horizontally. Pressing "Move" sends them all to
+/// the opposite vertical edge, but each circle departs 120ms after the one on
+/// its left — so the row travels like a wave.
 ///
 /// Things to try:
-/// - Press "Move" repeatedly before the trailing circles have departed:
-///   every press reserves its own start (deadlines are never reset), so each
-///   circle still visits the corners in order, just later than the leader.
+/// - Press "Move" again before the wave has finished: every press reserves
+///   its own start (deadlines are never reset), so each circle still visits
+///   both edges in order, trailing behind the leader.
+/// - Switch to "spring" for a bouncy wave with velocity-preserving redirects.
 /// - Turn off "animate" to compare with instant (non-animated) updates.
 class DelayedAnimationPage extends StatefulWidget {
   const DelayedAnimationPage({super.key});
@@ -25,29 +21,17 @@ class DelayedAnimationPage extends StatefulWidget {
 }
 
 class _DelayedAnimationPageState extends State<DelayedAnimationPage> {
-  static const _circleCount = 3;
+  static const _circleCount = 5;
+  static const _delayStep = Duration(milliseconds: 120);
 
-  /// 0: bottom-left (row), 1: top-left (column),
-  /// 2: top-right (row), 3: bottom-right (column)
-  var _corner = 0;
+  bool _isUp = false;
   bool _useSpring = false;
   bool _animationEnabled = true;
 
   final _keys = List.generate(_circleCount, (index) => GlobalKey());
 
-  static const _alignments = [
-    Alignment.bottomLeft,
-    Alignment.topLeft,
-    Alignment.topRight,
-    Alignment.bottomRight,
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final circles = [
-      for (var i = 0; i < _circleCount; i++) _buildCircle(i),
-    ];
-
     return AnimatedToBoundary(
       child: Scaffold(
         appBar: AppBar(
@@ -74,8 +58,8 @@ class _DelayedAnimationPageState extends State<DelayedAnimationPage> {
         ),
         backgroundColor: Colors.grey[900],
         floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => setState(() => _corner = (_corner + 1) % 4),
-          icon: const Icon(Icons.rotate_right),
+          onPressed: () => setState(() => _isUp = !_isUp),
+          icon: const Icon(Icons.swap_vert),
           label: const Text('Move'),
         ),
         body: SafeArea(
@@ -83,24 +67,30 @@ class _DelayedAnimationPageState extends State<DelayedAnimationPage> {
           child: Padding(
             // The bottom inset keeps the movement area above the FAB:
             // 16 (FAB margin) + 48 (extended FAB height) + 8 (gap) + 24 (base).
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 96),
             child: Stack(
               children: [
                 Center(
                   child: Text(
-                    'Press "Move" to send the circles to the next corner.\n'
-                    'The leader departs immediately; the others follow\n'
-                    '200ms and 400ms behind.',
+                    'Press "Move" and the circles travel to the other edge\n'
+                    'like a wave: each one departs 120ms after its neighbor.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey[500]),
                   ),
                 ),
-                Align(
-                  alignment: _alignments[_corner],
-                  child: _corner.isEven
-                      ? Row(mainAxisSize: MainAxisSize.min, children: circles)
-                      : Column(
-                          mainAxisSize: MainAxisSize.min, children: circles),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var i = 0; i < _circleCount; i++)
+                      Expanded(
+                        child: Align(
+                          alignment: _isUp
+                              ? Alignment.topCenter
+                              : Alignment.bottomCenter,
+                          child: _buildCircle(i),
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),
@@ -111,21 +101,18 @@ class _DelayedAnimationPageState extends State<DelayedAnimationPage> {
   }
 
   Widget _buildCircle(int index) {
-    final delay = Duration(milliseconds: 200 * index);
-    final child = Padding(
-      padding: const EdgeInsets.all(4),
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: Colors.primaries[index * 4 % Colors.primaries.length],
-          shape: BoxShape.circle,
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          '${delay.inMilliseconds}ms',
-          style: const TextStyle(color: Colors.white, fontSize: 11),
-        ),
+    final delay = _delayStep * index;
+    final child = Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.primaries[index * 3 % Colors.primaries.length],
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '${delay.inMilliseconds}',
+        style: const TextStyle(color: Colors.white, fontSize: 11),
       ),
     );
 
