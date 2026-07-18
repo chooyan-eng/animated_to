@@ -19,6 +19,15 @@ Matcher endsAnimation() => _ContainsActionMatcher<AnimationEnd>();
 /// Matcher that checks if actions contain PaintChild with specific offset
 Matcher paintsChildAt(Offset offset) => _PaintsAtMatcher(offset);
 
+/// Matcher that checks if actions contain DelayedAnimationSchedule
+Matcher schedulesDelay() => _ContainsActionMatcher<DelayedAnimationSchedule>();
+
+/// Matcher that checks if actions contain PendingDelayMutation
+Matcher updatesPendingDelay() => _ContainsActionMatcher<PendingDelayMutation>();
+
+/// Matcher that checks if actions contain DelayedAnimationCancel
+Matcher cancelsDelay() => _ContainsActionMatcher<DelayedAnimationCancel>();
+
 /// Matcher that checks if actions contain JourneyMutation with specific from/to
 Matcher hasJourney({Offset? from, Offset? to}) =>
     _HasJourneyMatcher(from: from, to: to);
@@ -508,6 +517,438 @@ void main() {
 
       // First frame with empty cache, position considered unchanged
       expect(actions, paintsChildAt(offset));
+    });
+  });
+
+  group('composeAnimation with delay', () {
+    const delay = Duration(milliseconds: 200);
+
+    test('should reserve a delayed animation instead of starting when idle',
+        () {
+      const offset = Offset(10, 20);
+      final cache = OffsetCache(
+        lastOffset: offset,
+        lastGlobalOffset: const Offset(100, 200),
+        lastBoundaryOffset: const Offset(100, 200),
+        startOffset: offset,
+      );
+
+      final actions = composeAnimation(
+        animationValue: null,
+        offset: offset,
+        globalOffset: const Offset(120, 210),
+        boundaryOffset: const Offset(120, 210),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        pendingDelay: null,
+      );
+
+      expect(actions, schedulesDelay());
+      expect(actions, isNot(startsAnimation()));
+      // held at the old position
+      expect(actions, paintsChildAt(const Offset(-10, 10)));
+      final pending =
+          actions.whereType<DelayedAnimationSchedule>().first.pending;
+      expect(pending.reservations, hasLength(1));
+      expect(pending.reservations.first.deadline, delay);
+      expect(pending.reservations.first.destinationShift, Offset.zero);
+      expect(pending.heldShift, const Offset(20, 10));
+    });
+
+    test('should keep running animation when reserving during animation', () {
+      // animating from (0,0) to (10,20), currently at (5,10),
+      // then the layout moves by (20,10).
+      final cache = OffsetCache(
+        lastOffset: const Offset(10, 20),
+        lastGlobalOffset: const Offset(100, 200),
+        lastBoundaryOffset: const Offset(100, 200),
+        startOffset: const Offset(10, 20),
+      );
+
+      final actions = composeAnimation(
+        animationValue: const Offset(5, 10),
+        offset: const Offset(30, 30),
+        globalOffset: const Offset(120, 210),
+        boundaryOffset: const Offset(120, 210),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        pendingDelay: null,
+      );
+
+      expect(actions, schedulesDelay());
+      expect(actions, isNot(cancelsAnimation()));
+      expect(actions, isNot(startsAnimation()));
+      // the running animation continues undisturbed
+      expect(actions, paintsChildAt(const Offset(5, 10)));
+    });
+
+    test('should follow scroll while holding position during wait', () {
+      // held at (-10,10); content scrolled by (0,-5) since then.
+      final cache = OffsetCache(
+        lastOffset: const Offset(10, 20),
+        lastGlobalOffset: const Offset(100, 200),
+        lastBoundaryOffset: const Offset(100, 200),
+        startOffset: const Offset(10, 20),
+      );
+
+      final actions = composeAnimation(
+        animationValue: null,
+        offset: const Offset(10, 15),
+        globalOffset: const Offset(100, 200),
+        boundaryOffset: const Offset(100, 200),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        delayElapsed: const Duration(milliseconds: 100),
+        pendingDelay: const PendingDelay(
+          reservations: [
+            DelayReservation(
+              deadline: Duration(milliseconds: 200),
+              destinationShift: Offset.zero,
+            ),
+          ],
+          heldShift: Offset(20, 10),
+          animationShift: Offset(20, 10),
+        ),
+      );
+
+      expect(actions, isNot(startsAnimation()));
+      expect(actions, isNot(updatesPendingDelay()));
+      expect(actions, paintsChildAt(const Offset(-10, 5)));
+    });
+
+    test(
+        'should queue a NEW reservation with its own deadline, '
+        'without resetting the first, when position changes again during wait',
+        () {
+      final cache = OffsetCache(
+        lastOffset: const Offset(10, 20),
+        lastGlobalOffset: const Offset(100, 200),
+        lastBoundaryOffset: const Offset(100, 200),
+        startOffset: const Offset(10, 20),
+      );
+
+      final actions = composeAnimation(
+        animationValue: null,
+        offset: const Offset(15, 25),
+        globalOffset: const Offset(105, 205),
+        boundaryOffset: const Offset(105, 205),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        delayElapsed: const Duration(milliseconds: 100),
+        pendingDelay: const PendingDelay(
+          reservations: [
+            DelayReservation(
+              deadline: Duration(milliseconds: 200),
+              destinationShift: Offset.zero,
+            ),
+          ],
+          heldShift: Offset(20, 10),
+          animationShift: Offset(20, 10),
+        ),
+      );
+
+      expect(actions, isNot(startsAnimation()));
+      expect(actions, isNot(schedulesDelay()));
+      expect(actions, updatesPendingDelay());
+      final pending = actions.whereType<PendingDelayMutation>().first.value;
+      expect(pending.reservations, hasLength(2));
+      // the first reservation keeps its deadline; its destination is shifted
+      // by the new move so it doesn't get dragged along.
+      expect(
+          pending.reservations[0].deadline, const Duration(milliseconds: 200));
+      expect(pending.reservations[0].destinationShift, const Offset(5, 5));
+      // the new reservation has its own deadline (elapsed + delay) and
+      // targets the latest position.
+      expect(
+          pending.reservations[1].deadline, const Duration(milliseconds: 300));
+      expect(pending.reservations[1].destinationShift, Offset.zero);
+      // still held at the same position
+      expect(actions, paintsChildAt(const Offset(-10, 10)));
+    });
+
+    test(
+        'should follow scroll only when scroll and layout change '
+        'happen in the same frame during wait', () {
+      // scroll (0,-5) and layout move (5,5) at once.
+      final cache = OffsetCache(
+        lastOffset: const Offset(10, 20),
+        lastGlobalOffset: const Offset(100, 200),
+        lastBoundaryOffset: const Offset(100, 200),
+        startOffset: const Offset(10, 20),
+      );
+
+      final actions = composeAnimation(
+        animationValue: null,
+        offset: const Offset(15, 20),
+        globalOffset: const Offset(105, 205),
+        boundaryOffset: const Offset(105, 205),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        delayElapsed: const Duration(milliseconds: 100),
+        pendingDelay: const PendingDelay(
+          reservations: [
+            DelayReservation(
+              deadline: Duration(milliseconds: 200),
+              destinationShift: Offset.zero,
+            ),
+          ],
+          heldShift: Offset(20, 10),
+          animationShift: Offset(20, 10),
+        ),
+      );
+
+      expect(actions, updatesPendingDelay());
+      // held position (-10,10) followed the scroll (0,-5)
+      expect(actions, paintsChildAt(const Offset(-10, 5)));
+    });
+
+    test(
+        'should fire the first reservation on time toward ITS destination '
+        'while a later reservation keeps waiting', () {
+      // reservation 1 (deadline 200ms) targets B = offset - (5,5);
+      // reservation 2 (deadline 300ms) targets the latest position.
+      final cache = OffsetCache(
+        lastOffset: const Offset(15, 25),
+        lastGlobalOffset: const Offset(105, 205),
+        lastBoundaryOffset: const Offset(105, 205),
+        startOffset: const Offset(10, 20),
+      );
+
+      final actions = composeAnimation(
+        animationValue: null,
+        offset: const Offset(15, 25),
+        globalOffset: const Offset(105, 205),
+        boundaryOffset: const Offset(105, 205),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        delayElapsed: const Duration(milliseconds: 210),
+        pendingDelay: const PendingDelay(
+          reservations: [
+            DelayReservation(
+              deadline: Duration(milliseconds: 200),
+              destinationShift: Offset(5, 5),
+            ),
+            DelayReservation(
+              deadline: Duration(milliseconds: 300),
+              destinationShift: Offset.zero,
+            ),
+          ],
+          heldShift: Offset(25, 15),
+          animationShift: Offset(25, 15),
+        ),
+      );
+
+      expect(actions, startsAnimation());
+      // fired from the held position toward the FIRST (stale) destination
+      expect(actions,
+          hasJourney(from: const Offset(-10, 10), to: const Offset(10, 20)));
+      // a fresh start from rest uses velocityBuilder, not a zero velocity
+      expect(actions.whereType<AnimationStart>().first.velocity, isNull);
+      // the queue is not empty yet: no cancel, and the remaining reservation
+      // survives with the fired destination as the new resting position.
+      expect(actions, isNot(cancelsDelay()));
+      expect(actions, updatesPendingDelay());
+      final pending = actions.whereType<PendingDelayMutation>().first.value;
+      expect(pending.reservations, hasLength(1));
+      expect(
+          pending.reservations.first.deadline, const Duration(milliseconds: 300));
+      expect(pending.heldShift, const Offset(5, 5));
+      expect(pending.animationShift, Offset.zero);
+      // the scroll anchor is this frame's offset, NOT the stale journey.to
+      final anchors = actions
+          .whereType<OffsetCacheMutation>()
+          .where((m) => m.startOffset != null)
+          .toList();
+      expect(anchors.last.startOffset, const Offset(15, 25));
+    });
+
+    test(
+        'should redirect the running animation with velocity when the next '
+        'reservation fires, then empty the queue', () {
+      final cache = OffsetCache(
+        lastOffset: const Offset(15, 25),
+        lastGlobalOffset: const Offset(105, 205),
+        lastBoundaryOffset: const Offset(105, 205),
+        startOffset: const Offset(15, 25),
+      );
+
+      final actions = composeAnimation(
+        animationValue: const Offset(3, 7),
+        velocity: const Offset(3, 4),
+        offset: const Offset(15, 25),
+        globalOffset: const Offset(105, 205),
+        boundaryOffset: const Offset(105, 205),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        delayElapsed: const Duration(milliseconds: 310),
+        pendingDelay: const PendingDelay(
+          reservations: [
+            DelayReservation(
+              deadline: Duration(milliseconds: 300),
+              destinationShift: Offset.zero,
+            ),
+          ],
+          heldShift: Offset(5, 5),
+          animationShift: Offset.zero,
+        ),
+      );
+
+      expect(actions, cancelsAnimation());
+      expect(actions, startsAnimation());
+      expect(actions, cancelsDelay());
+      // redirected from the current animated position toward the latest
+      // destination, keeping the velocity.
+      expect(actions,
+          hasJourney(from: const Offset(3, 7), to: const Offset(15, 25)));
+      expect(actions.whereType<AnimationStart>().first.velocity,
+          const Offset(3, 4));
+    });
+
+    test(
+        'A -> B -> back to A: the first reservation still fires toward B '
+        'even though the layout is already back at A', () {
+      // change 1 (A -> B) reserved, then change 2 (B -> A) reserved.
+      // After change 2, reservation 1's destination B is expressed as
+      // offset - (-20,-10), and the held position is A itself.
+      final cache = OffsetCache(
+        lastOffset: const Offset(10, 20),
+        lastGlobalOffset: const Offset(100, 200),
+        lastBoundaryOffset: const Offset(100, 200),
+        startOffset: const Offset(10, 20),
+      );
+
+      final actions = composeAnimation(
+        animationValue: null,
+        offset: const Offset(10, 20), // back at A
+        globalOffset: const Offset(100, 200),
+        boundaryOffset: const Offset(100, 200),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        delayElapsed: const Duration(milliseconds: 210),
+        pendingDelay: const PendingDelay(
+          reservations: [
+            DelayReservation(
+              deadline: Duration(milliseconds: 200),
+              destinationShift: Offset(-20, -10), // B = offset + (20,10)
+            ),
+            DelayReservation(
+              deadline: Duration(milliseconds: 300),
+              destinationShift: Offset.zero, // A
+            ),
+          ],
+          heldShift: Offset.zero, // resting at A
+          animationShift: Offset.zero,
+        ),
+      );
+
+      expect(actions, startsAnimation());
+      // departs from A toward B on reservation 1's deadline; reservation 2
+      // will redirect back to A later.
+      expect(actions,
+          hasJourney(from: const Offset(10, 20), to: const Offset(30, 30)));
+      expect(actions, isNot(cancelsDelay()));
+    });
+
+    test(
+        'should fire straight to the last expired reservation when multiple '
+        'deadlines passed in one frame', () {
+      final cache = OffsetCache(
+        lastOffset: const Offset(15, 25),
+        lastGlobalOffset: const Offset(105, 205),
+        lastBoundaryOffset: const Offset(105, 205),
+        startOffset: const Offset(10, 20),
+      );
+
+      final actions = composeAnimation(
+        animationValue: null,
+        offset: const Offset(15, 25),
+        globalOffset: const Offset(105, 205),
+        boundaryOffset: const Offset(105, 205),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        delay: delay,
+        delayElapsed: const Duration(milliseconds: 350),
+        pendingDelay: const PendingDelay(
+          reservations: [
+            DelayReservation(
+              deadline: Duration(milliseconds: 200),
+              destinationShift: Offset(5, 5),
+            ),
+            DelayReservation(
+              deadline: Duration(milliseconds: 300),
+              destinationShift: Offset.zero,
+            ),
+          ],
+          heldShift: Offset(25, 15),
+          animationShift: Offset(25, 15),
+        ),
+      );
+
+      expect(actions, startsAnimation());
+      expect(actions, cancelsDelay());
+      // only the last expired destination is visible
+      expect(actions,
+          hasJourney(from: const Offset(-10, 10), to: const Offset(15, 25)));
+    });
+
+    test('should start animation immediately when delay is zero', () {
+      const offset = Offset(10, 20);
+      final cache = OffsetCache(
+        lastOffset: offset,
+        lastGlobalOffset: const Offset(100, 200),
+        lastBoundaryOffset: const Offset(100, 200),
+        startOffset: offset,
+      );
+
+      final actions = composeAnimation(
+        animationValue: null,
+        offset: offset,
+        globalOffset: const Offset(120, 210),
+        boundaryOffset: const Offset(120, 210),
+        ancestorChanged: false,
+        ancestorGlobalOffset: null,
+        cache: cache,
+        pendingDelay: null,
+      );
+
+      expect(actions, isNot(schedulesDelay()));
+      expect(actions, startsAnimation());
+      expect(actions, hasJourney(from: const Offset(-10, 10), to: offset));
+    });
+  });
+
+  group('composeDisabled with waiting delay', () {
+    test('should discard the waiting delay when disabled', () {
+      const offset = Offset(10, 20);
+
+      final actions = composeDisabled(true, offset, isWaiting: true);
+
+      expect(actions, cancelsAnimation());
+      expect(actions, cancelsDelay());
+      expect(actions, paintsChildAt(offset));
+    });
+
+    test('should not emit delay cancellation when not waiting', () {
+      final actions = composeDisabled(false, const Offset(5, 10));
+
+      expect(actions, isNot(cancelsDelay()));
     });
   });
 }

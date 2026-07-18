@@ -1,3 +1,4 @@
+import 'package:animated_to/src/helper.dart';
 import 'package:animated_to/src/journey.dart';
 import 'package:flutter/rendering.dart';
 
@@ -26,6 +27,29 @@ final class AnimationEnd extends MutationAction {}
 
 /// [MutationAction] to cancel the ongoing animation.
 final class AnimationCancel extends MutationAction {}
+
+/// [MutationAction] to start the delayed-animation wait.
+/// The receiver should start a ticker (obtained from its vsync) to measure
+/// reservations' deadlines and keep [pending] as the initial waiting state.
+final class DelayedAnimationSchedule extends MutationAction {
+  DelayedAnimationSchedule(this.pending);
+
+  /// The initial waiting state holding the first [DelayReservation].
+  final PendingDelay pending;
+}
+
+/// [MutationAction] to update the waiting state while the delay ticker keeps
+/// running: a new reservation was queued, tracked shifts were updated, or a
+/// fired reservation was removed with more still waiting. Existing
+/// reservations' deadlines are never reset.
+final class PendingDelayMutation extends MutationAction {
+  PendingDelayMutation(this.value);
+  final PendingDelay value;
+}
+
+/// [MutationAction] to discard all waiting reservations.
+/// The receiver should stop the delay ticker and clear the waiting state.
+final class DelayedAnimationCancel extends MutationAction {}
 
 /// [MutationAction] to paint the child at [offset].
 /// Because paint operation requires [PaintingContext], which is not

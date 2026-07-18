@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:animated_to/animated_to.dart';
+import 'package:example/delayed_animation_page.dart';
 import 'package:example/draggable_page.dart';
 import 'package:example/graph_page.dart';
 import 'package:example/hit_test_page.dart';
@@ -177,6 +178,18 @@ class _AnimatedToSamplePageState extends State<AnimatedToSamplePage>
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (context) => const SimpleDemoPage(),
+                        ),
+                      );
+                    },
+                    controller: _drawerScrollController,
+                  ),
+                  _DrawerMenuItem(
+                    title: 'Delayed Animation',
+                    vsync: this,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const DelayedAnimationPage(),
                         ),
                       );
                     },
