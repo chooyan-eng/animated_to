@@ -1,3 +1,6 @@
+## [0.9.0] - 2026.7.18
+- Add `delay` feature. The child waits for the given duration after a position change is detected before starting the animation, which makes staggered / wave effects trivial.
+
 ## [0.8.1] - 2025.12.31
 - Fixed wrong coordinate calculation inside `AnimatedTo.spring`
 

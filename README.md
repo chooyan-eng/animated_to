@@ -61,6 +61,29 @@ As `motor` is also used inside `animated_to` package(thanks @timcreatedit!), mak
 
 ![spring demo](https://github.com/chooyan-eng/animated_to/raw/main/assets/animated_to_4.gif)
 
+## Delayed animation
+
+`delay` lets `AnimatedTo` wait for the given `Duration` after its position change is detected before starting the animation. While waiting, the child stays painted at its previous position — following scroll if the page scrolls — and then departs toward the destination.
+
+This makes staggered effects trivial: give each widget an increasing `delay` and a single rebuild produces a wave-like cascade.
+
+```dart
+Row(
+  children: [
+    for (var i = 0; i < items.length; i++)
+      AnimatedTo.curve(
+        globalKey: GlobalObjectKey(items[i]),
+        delay: Duration(milliseconds: 120 * i),
+        child: ItemWidget(items[i]),
+      ),
+  ],
+)
+```
+
+Every position change is reserved individually with its own deadline (the moment of the change + `delay`) and its own destination (the position at that moment). If the position changes again while a reservation is waiting — or while a delayed animation is running — the earlier reservation still departs on time toward its own destination, and the later one redirects the animation, keeping its velocity for `AnimatedTo.spring`, when its own deadline comes. Deadlines are never reset, so quick successive changes are replayed in order, each one `delay` behind.
+
+See the "Delayed Animation" page in [example](example) for a working wave demo.
+
 ## Some more features
 
 `appearingFrom` lets you specify the start position of the animation in the first frame. By providing an absolute position in the global coordinate system, the widget will appear there and then animate to the original position.
@@ -140,6 +163,7 @@ Note that `AnimatedToBoundary` can be nested, so you don't have to remove other 
 | child | Widget | The widget you want to animate when its position changes. |
 | duration | Duration | (curve only) The duration of the animation. |
 | curve | Curve | (curve only) The curve of the animation. |
+| delay | Duration | How long to wait after a position change is detected before starting the animation. Each change is reserved with its own deadline and destination. Defaults to `Duration.zero` (starts immediately). |
 | description | SpringDescription | (spring only) The configuration of the spring simulation. |
 | velocityBuilder | Offset Function()? | (spring only) A function to provide initial velocity to start spring animation. |
 | verticalController | AnimationController? | Required if `AnimatedTo` is on the subtree of vertical `SingleChildScrollView`. Share the controller with the `SingleChildScrollView` to properly animate the widget. Don't provide one when `AnimatedTo` is on `ListView`. |

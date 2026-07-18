@@ -10,6 +10,7 @@ This guide helps AI systems generate correct code patterns for the `animated_to`
 - Automatic position animation on layout changes
 - Two animation types: curve-based and spring-based
 - No manual position calculations required
+- Delayed / staggered starts via `delay`
 - Hit testing support during animation
 - ScrollView integration
 
@@ -28,6 +29,7 @@ import 'package:animated_to/animated_to.dart';
 | Gesture interaction during animation | Either + `AnimatedToBoundary` | GlobalKey, Container wrapper |
 | Inside ScrollView | Either + scroll controllers | GlobalKey, ScrollController |
 | Appearing from specific position in the first frame | Either + `appearingFrom`/`slidingFrom` | GlobalKey, Offset |
+| Staggered / wave animations | Either + `delay` | GlobalKey, per-widget Duration |
 
 ## Code Generation Templates
 
@@ -324,6 +326,58 @@ class _DraggableWidgetState extends State<DraggableWidget> {
 }
 ```
 
+### 8. Staggered Wave with delay
+
+```dart
+class WaveWidget extends StatefulWidget {
+  @override
+  State<WaveWidget> createState() => _WaveWidgetState();
+}
+
+class _WaveWidgetState extends State<WaveWidget> {
+  static const _count = 5;
+  bool _isUp = false;
+  final _keys = List.generate(_count, (index) => GlobalKey());
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => setState(() => _isUp = !_isUp),
+        child: Icon(Icons.swap_vert),
+      ),
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < _count; i++)
+            Expanded(
+              child: Align(
+                alignment: _isUp ? Alignment.topCenter : Alignment.bottomCenter,
+                child: AnimatedTo.curve(
+                  globalKey: _keys[i],
+                  // each circle departs 120ms after its left neighbor,
+                  // so a single setState produces a wave
+                  delay: Duration(milliseconds: 120 * i),
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+```
+
+**How `delay` behaves**: every position change is reserved individually with its own deadline (change time + `delay`) and its own destination (the layout position at that time). While waiting, the child stays painted at its previous position (following scroll). If the position changes again mid-wait or mid-animation, the earlier reservation still departs on time toward its own destination, and the later one redirects the running animation (keeping velocity for spring) at its own deadline — deadlines are never reset.
+
 ## API Reference
 
 ### AnimatedTo.curve Parameters
@@ -334,6 +388,7 @@ class _DraggableWidgetState extends State<DraggableWidget> {
 | `child` | `Widget?` | ❌ | Widget to animate | `Container(...)` |
 | `duration` | `Duration` | ❌ | Animation duration | `Duration(milliseconds: 300)` |
 | `curve` | `Curve` | ❌ | Animation curve | `Curves.easeInOut` |
+| `delay` | `Duration` | ❌ | Wait before starting after a position change (staggered starts) | `Duration(milliseconds: 120)` |
 | `appearingFrom` | `Offset?` | ❌ | Absolute start position (global coordinates) | `Offset(100, 200)` |
 | `slidingFrom` | `Offset?` | ❌ | Relative start position | `Offset(0, -50)` |
 | `enabled` | `bool` | ❌ | Enable/disable animation | `true` (default) |
@@ -351,6 +406,7 @@ class _DraggableWidgetState extends State<DraggableWidget> {
 | `child` | `Widget?` | ❌ | Widget to animate | `Container(...)` |
 | `description` | `SpringDescription?` | ❌ | Spring physics configuration | `SpringDescription(mass: 1, stiffness: 100, damping: 10)` |
 | `velocityBuilder` | `Offset Function()?` | ❌ | Initial velocity provider | `() => Offset(100, 0)` |
+| `delay` | `Duration` | ❌ | Wait before starting after a position change (staggered starts) | `Duration(milliseconds: 120)` |
 | `appearingFrom` | `Offset?` | ❌ | Absolute start position | `Offset(100, 200)` |
 | `slidingFrom` | `Offset?` | ❌ | Relative start position | `Offset(0, -50)` |
 | `enabled` | `bool` | ❌ | Enable/disable animation | `true` (default) |
@@ -805,4 +861,5 @@ When generating AnimatedTo code, ensure:
 - [ ] No `ScrollController` for `ListView`
 - [ ] `appearingFrom` uses absolute coordinates
 - [ ] `slidingFrom` uses relative coordinates
+- [ ] `delay` increases per item (e.g., `Duration(milliseconds: 120) * index`) for staggered / wave effects
 - [ ] State management triggers rebuilds that change widget position
