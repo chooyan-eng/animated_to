@@ -4,7 +4,7 @@ import 'package:animated_to/src/action_composer.dart';
 import 'package:animated_to/src/helper.dart';
 import 'package:animated_to/src/journey.dart';
 import 'package:animated_to/src/size_maintainer.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:motor/motor.dart';

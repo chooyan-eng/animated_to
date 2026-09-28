@@ -3,7 +3,7 @@ import 'dart:math';
 
 import 'package:animated_to/animated_to.dart';
 import 'package:example/grid_painter.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A page that demonstrates the `AnimatedTo` package with a live graph simulation.
 /// To see the usage of `AnimatedTo`, jump to line 130.

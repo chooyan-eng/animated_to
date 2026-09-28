@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:animated_to/animated_to.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class ScrollablePage extends StatefulWidget {
   const ScrollablePage({super.key});
