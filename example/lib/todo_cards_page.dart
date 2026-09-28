@@ -1,5 +1,5 @@
 import 'package:animated_to/animated_to.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class TodoCardsPage extends StatefulWidget {
   const TodoCardsPage({super.key});
@@ -20,9 +20,7 @@ class _TodoCardsPageState extends State<TodoCardsPage>
   Widget build(BuildContext context) {
     return AnimatedToBoundary(
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Todo Cards Page'),
-        ),
+        appBar: AppBar(title: const Text('Todo Cards Page')),
         body: NotificationListener<ScrollNotification>(
           // workaround to fix scrolling issue by disabling animation when scrolling
           onNotification: (notification) {
@@ -110,7 +108,8 @@ class _TodoCardsPageState extends State<TodoCardsPage>
         floatingActionButton: FloatingActionButton(
           onPressed: () {
             setState(() {
-              final allItemNumber = _leftLineItems.length +
+              final allItemNumber =
+                  _leftLineItems.length +
                   _centerLineItems.length +
                   _rightLineItems.length;
               _leftLineItems.add('t${allItemNumber + 1}');
@@ -157,7 +156,7 @@ class _Item extends StatelessWidget {
             color: color,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -179,10 +178,7 @@ class _Item extends StatelessWidget {
                 const SizedBox(height: 4),
                 const Text(
                   'Sample task to complete',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white70,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.white70),
                 ),
               ],
             ),

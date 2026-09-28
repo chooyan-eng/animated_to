@@ -1,6 +1,6 @@
 import 'package:animated_to/animated_to.dart';
 import 'package:example/grid_painter.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:motor/motor.dart';
 
 class NestedAnimatedToPage extends StatefulWidget {

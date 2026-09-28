@@ -14,7 +14,7 @@ import 'package:example/simple_demo_page.dart';
 import 'package:example/spring_page.dart';
 import 'package:example/todo_cards_page.dart';
 import 'package:example/two_lines_page.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() => runApp(const MyApp());
 

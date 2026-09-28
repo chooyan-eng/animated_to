@@ -1,3 +1,6 @@
+## [0.9.1] - 2026.9.28
+- Migrated to Flutter's Material/Cupertino decoupling. The package itself now depends only on `package:flutter/widgets.dart`, and the example app uses the standalone `material_ui` package.
+
 ## [0.9.0] - 2026.7.18
 - Add `delay` feature. The child waits for the given duration after a position change is detected before starting the animation, which makes staggered / wave effects trivial.
 

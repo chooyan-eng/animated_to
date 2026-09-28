@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 /// A widget to maintain [AnimatedTo]'s child size.
 /// This widget is used when the child's size is updated with animation.

@@ -1,6 +1,6 @@
 import 'package:animated_to/src/curve_widget.dart';
 import 'package:animated_to/src/spring_widget.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 /// [AnimatedTo] is a widget that animates a given [child] when its position changes for any reason.
 /// You don't need to calculate any animation values, as the calculation is always done by [RenderObject].
