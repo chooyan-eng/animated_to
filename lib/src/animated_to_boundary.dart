@@ -66,6 +66,7 @@ class AnimatedToBoundary extends SingleChildRenderObjectWidget {
   const AnimatedToBoundary({
     super.key,
     required super.child,
+    this.hitTestOverflow = false,
   });
 
   /// Retrieves the nearest [RenderAnimatedToBoundary] from the given [context].
@@ -75,10 +76,21 @@ class AnimatedToBoundary extends SingleChildRenderObjectWidget {
     return context.findAncestorRenderObjectOfType<RenderAnimatedToBoundary>();
   }
 
+  /// When true, allows hit testing outside this widget's layout bounds.
+  ///
+  /// Defaults to `false`.
+  final bool hitTestOverflow;
+
   /// Creates a [RenderAnimatedToBoundary] which performs custom hit testing.
   @override
   RenderAnimatedToBoundary createRenderObject(BuildContext context) {
-    return RenderAnimatedToBoundary();
+    return RenderAnimatedToBoundary(hitTestOverflow: hitTestOverflow);
+  }
+
+  @override
+  void updateRenderObject(
+      BuildContext context, RenderAnimatedToBoundary renderObject) {
+    renderObject.hitTestOverflow = hitTestOverflow;
   }
 }
 
@@ -88,8 +100,16 @@ class AnimatedToBoundary extends SingleChildRenderObjectWidget {
 /// objects and performs hit testing on them at their animated positions before
 /// falling back to normal hit testing.
 class RenderAnimatedToBoundary extends RenderProxyBox {
+  RenderAnimatedToBoundary({bool hitTestOverflow = false})
+      : _hitTestOverflow = hitTestOverflow;
+
   /// List of currently animating render objects.
   final List<RenderAnimatedTo> _animatingWidgets = [];
+
+  bool _hitTestOverflow = false;
+  set hitTestOverflow(bool value) {
+    _hitTestOverflow = value;
+  }
 
   /// Registers an animating render object.
   ///
@@ -116,23 +136,104 @@ class RenderAnimatedToBoundary extends RenderProxyBox {
   /// TODO(chooyan-eng): consider z-order, but how?
   @override
   bool hitTest(BoxHitTestResult result, {required Offset position}) {
-    for (final animatingWidget in _animatingWidgets) {
-      final animatedOffset = animatingWidget.currentAnimatedOffset!;
-      final isHit = result.addWithPaintOffset(
-        offset: animatedOffset,
+    // During animation we cannot use normal hit testing because the pointer
+    // must be evaluated at the animated (visual) position, not the layout
+    // position. We therefore short-circuit to animating widgets and perform
+    // a manual ancestor gate (pointer blockers / bounds / clips).
+    final globalPosition = localToGlobal(position);
+    _animatingWidgets.removeWhere(
+      (renderObject) =>
+          !renderObject.attached ||
+          !renderObject.hitTestEnabled ||
+          renderObject.currentAnimatedTransform == null,
+    );
+
+    bool hitTestWidget(RenderAnimatedTo animatingWidget) {
+      // Recreate the ancestor "should this hit reach me?" gate since we are
+      // bypassing the normal top-down hit test traversal.
+      if (!_ancestorsAllowHit(animatingWidget, globalPosition)) {
+        return false;
+      }
+      final transform = animatingWidget.currentAnimatedTransform!;
+      // Use addWithPaintTransform instead of addWithPaintOffset to properly
+      // handle rotations, scales, and other transforms between the boundary
+      // and the animating widget.
+      final isHit = result.addWithPaintTransform(
+        transform: transform,
         position: position,
-        hitTest: (BoxHitTestResult result, Offset transformed) {
-          assert(transformed == position - animatedOffset);
-          return animatingWidget.hitTest(result, position: transformed);
+        hitTest: (BoxHitTestResult result, Offset? transformed) {
+          if (transformed == null) {
+            // Transform is degenerate (not invertible, e.g., scale=0)
+            return false;
+          }
+          // Hit test the AnimatedTo's children directly
+          return animatingWidget.hitTestChildren(result, position: transformed);
         },
       );
       if (isHit) {
+        _addAncestorHitTestEntries(result, animatingWidget, position);
+      }
+      return isHit;
+    }
+
+    for (final animatingWidget in _animatingWidgets) {
+      if (hitTestWidget(animatingWidget)) {
         return true;
       }
     }
 
-    // No animating widget was hit, fall back to normal hit testing
+    // No registered widget was hit, fall back to normal hit testing.
+    if (_hitTestOverflow) {
+      if (hitTestChildren(result, position: position) ||
+          hitTestSelf(position)) {
+        result.add(BoxHitTestEntry(this, position));
+        return true;
+      }
+      return false;
+    }
     return super.hitTest(result, position: position);
+  }
+
+  bool _ancestorsAllowHit(RenderObject leaf, Offset globalPosition) {
+    // Walk from the animated widget up to this boundary and apply the key
+    // hit-test rules that would normally be enforced by ancestors.
+    //
+    // TODO(jesper): we intentionally skip ancestor bounds/clip checks
+    // here. During animation the widget is visually offset from its layout
+    // position, so those checks run in layout space and would reject valid
+    // visual hits. If we ever reintroduce them, we need to evaluate against
+    // the animated transform (not the layout transform).
+    RenderObject? ancestor = leaf.parent;
+    while (ancestor != null && ancestor != this) {
+      if (ancestor is RenderIgnorePointer && ancestor.ignoring) {
+        return false;
+      }
+      if (ancestor is RenderAbsorbPointer && ancestor.absorbing) {
+        return false;
+      }
+      if (ancestor is RenderOffstage && ancestor.offstage) {
+        return false;
+      }
+      ancestor = ancestor.parent;
+    }
+    return true;
+  }
+
+  void _addAncestorHitTestEntries(
+    BoxHitTestResult result,
+    RenderObject leaf,
+    Offset position,
+  ) {
+    final globalPosition = localToGlobal(position);
+    RenderObject? ancestor = leaf.parent;
+    while (ancestor != null && ancestor != this) {
+      if (ancestor is RenderBox) {
+        final localPosition = ancestor.globalToLocal(globalPosition);
+        result.add(BoxHitTestEntry(ancestor, localPosition));
+      }
+      ancestor = ancestor.parent;
+    }
+    result.add(BoxHitTestEntry(this, position));
   }
 }
 
@@ -140,7 +241,21 @@ class RenderAnimatedToBoundary extends RenderProxyBox {
 ///
 /// This is implemented by both spring and curve versions of [RenderAnimatedTo].
 abstract class RenderAnimatedTo extends RenderProxyBox {
-  /// The current animated position in global coordinates.
+  /// The full transformation matrix from this widget's child coordinate space
+  /// to the boundary's coordinate space.
+  ///
+  /// This matrix includes:
+  /// - The animation offset (translation applied during painting)
+  /// - All transforms between this widget and the boundary (rotations, scales, etc.)
+  ///
+  /// Returns null if not currently animating or if no boundary is set.
+  Matrix4? get currentAnimatedTransform;
+
+  /// The current animated position offset.
+  ///
+  /// Note: This is just the translation component and may be inaccurate
+  /// when transforms (rotation/scale) exist between boundary and this widget.
+  /// Use [currentAnimatedTransform] for accurate hit testing with transforms.
   Offset? get currentAnimatedOffset;
 
   /// The offset of this render object in global coordinates.
